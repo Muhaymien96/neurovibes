@@ -245,6 +245,11 @@ export const TaskManager: React.FC = () => {
     setEditFormData({});
   };
 
+  const handleDeleteTask = async (taskId: string) => {
+    await deleteTask(taskId);
+    setShowTaskMenu(null);
+  };
+
   const handleSubtaskAdd = async (subtaskTitle: string, parentId?: string) => {
     console.log('Adding subtask:', subtaskTitle, 'to parent:', parentId);
     
@@ -270,6 +275,13 @@ export const TaskManager: React.FC = () => {
     const task = getTaskById(id);
     if (status === 'completed' && task?.recurrence_pattern) {
       await createRecurringTask(task);
+    }
+  };
+
+  const handleClearCompletedTasks = async () => {
+    const completedTasks = tasks.filter(task => task.status === 'completed');
+    for (const task of completedTasks) {
+      await deleteTask(task.id);
     }
   };
 
@@ -331,6 +343,41 @@ export const TaskManager: React.FC = () => {
     setDraggedTask(null);
   };
 
+  const getStatusButton = (task: any) => {
+    switch (task.status) {
+      case 'completed':
+        return (
+          <button
+            onClick={() => handleUpdateTaskStatus(task.id, 'pending')}
+            className="p-1 text-green-600 hover:bg-green-50 rounded"
+            title="Mark as pending"
+          >
+            <RotateCcw className="h-4 w-4" />
+          </button>
+        );
+      case 'in_progress':
+        return (
+          <button
+            onClick={() => handleUpdateTaskStatus(task.id, 'completed')}
+            className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+            title="Mark as completed"
+          >
+            <CheckCircle className="h-4 w-4" />
+          </button>
+        );
+      default:
+        return (
+          <button
+            onClick={() => handleUpdateTaskStatus(task.id, 'in_progress')}
+            className="p-1 text-gray-600 hover:bg-gray-50 rounded"
+            title="Start working"
+          >
+            <Play className="h-4 w-4" />
+          </button>
+        );
+    }
+  };
+
   const addTag = () => {
     if (newTag.trim() && !newTask.tags.includes(newTag.trim())) {
       setNewTask(prev => ({
@@ -373,41 +420,6 @@ export const TaskManager: React.FC = () => {
         return <Clock className="h-5 w-5 text-blue-600" />;
       default:
         return <AlertCircle className="h-5 w-5 text-gray-400" />;
-    }
-  };
-
-  const getStatusButton = (task: any) => {
-    switch (task.status) {
-      case 'completed':
-        return (
-          <button
-            onClick={() => handleUpdateTaskStatus(task.id, 'pending')}
-            className="p-1 text-green-600 hover:bg-green-50 rounded"
-            title="Mark as pending"
-          >
-            <RotateCcw className="h-4 w-4" />
-          </button>
-        );
-      case 'in_progress':
-        return (
-          <button
-            onClick={() => handleUpdateTaskStatus(task.id, 'completed')}
-            className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-            title="Mark as completed"
-          >
-            <CheckCircle className="h-4 w-4" />
-          </button>
-        );
-      default:
-        return (
-          <button
-            onClick={() => handleUpdateTaskStatus(task.id, 'in_progress')}
-            className="p-1 text-gray-600 hover:bg-gray-50 rounded"
-            title="Start working"
-          >
-            <Play className="h-4 w-4" />
-          </button>
-        );
     }
   };
 
@@ -548,10 +560,7 @@ export const TaskManager: React.FC = () => {
           <span>{task.status === 'in_progress' ? 'Mark as Pending' : 'Start Working'}</span>
         </button>
         <button
-          onClick={() => {
-            deleteTask(task.id);
-            setShowTaskMenu(null);
-          }}
+          onClick={() => handleDeleteTask(task.id)}
           className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
         >
           <Trash2 className="h-4 w-4" />
@@ -560,6 +569,13 @@ export const TaskManager: React.FC = () => {
       </div>
     </div>
   );
+
+  // Sort tasks: completed tasks go to bottom
+  const sortedTasks = [...tasks].sort((a, b) => {
+    if (a.status === 'completed' && b.status !== 'completed') return 1;
+    if (a.status !== 'completed' && b.status === 'completed') return -1;
+    return (a.task_order || 0) - (b.task_order || 0);
+  });
 
   const renderTask = (task: any, level: number = 0) => (
     <div key={task.id} className={`${level > 0 ? 'ml-8' : ''}`}>
@@ -570,7 +586,7 @@ export const TaskManager: React.FC = () => {
         onDrop={(e) => handleDrop(e, task.id)}
         className={`bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 ${
           draggedTask === task.id ? 'opacity-50' : ''
-        }`}
+        } ${task.status === 'completed' ? 'opacity-75' : ''}`}
       >
         <div className="flex items-start justify-between">
           <div className="flex items-start space-x-3 flex-grow">
@@ -638,7 +654,10 @@ export const TaskManager: React.FC = () => {
 
           <div className="flex items-center space-x-2 relative">
             <button
-              onClick={() => setShowTaskMenu(showTaskMenu === task.id ? null : task.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowTaskMenu(showTaskMenu === task.id ? null : task.id);
+              }}
               className="p-1 text-gray-600 hover:bg-gray-50 rounded"
               title="More options"
             >
@@ -679,12 +698,23 @@ export const TaskManager: React.FC = () => {
     );
   }
 
+  const completedTasksCount = tasks.filter(task => task.status === 'completed').length;
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-2xl font-bold text-gray-900">Your Tasks</h3>
         <div className="flex space-x-3">
+          {completedTasksCount > 0 && (
+            <button
+              onClick={handleClearCompletedTasks}
+              className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+            >
+              <Trash2 className="h-4 w-4" />
+              <span>Clear Completed ({completedTasksCount})</span>
+            </button>
+          )}
           <button
             onClick={() => setShowAddForm(true)}
             className="flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
@@ -925,14 +955,14 @@ export const TaskManager: React.FC = () => {
 
       {/* Tasks List */}
       <div className="space-y-3">
-        {tasks.length === 0 ? (
+        {sortedTasks.length === 0 ? (
           <div className="text-center py-12">
             <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h4 className="text-lg font-medium text-gray-900 mb-2">No tasks yet</h4>
             <p className="text-gray-600">Create your first task or try the workload breakdown feature!</p>
           </div>
         ) : (
-          tasks.map(task => renderTask(task))
+          sortedTasks.map(task => renderTask(task))
         )}
       </div>
     </div>
