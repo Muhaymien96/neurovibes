@@ -13,7 +13,9 @@ import {
   Repeat,
   Calendar,
   Tag,
-  MoreHorizontal
+  MoreHorizontal,
+  Save,
+  X
 } from 'lucide-react';
 import { useTasksStore, useAuthStore } from '../store';
 import { useAICoach } from '../hooks/useAICoach';
@@ -39,6 +41,8 @@ export const TaskManager: React.FC = () => {
   const [editingTask, setEditingTask] = useState<string | null>(null);
   const [aiResponse, setAiResponse] = useState<any>(null);
   const [draggedTask, setDraggedTask] = useState<string | null>(null);
+  const [showTaskMenu, setShowTaskMenu] = useState<string | null>(null);
+  const [editFormData, setEditFormData] = useState<any>({});
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
@@ -99,6 +103,38 @@ export const TaskManager: React.FC = () => {
       });
       setShowAddForm(false);
     }
+  };
+
+  const handleEditTask = (task: any) => {
+    setEditingTask(task.id);
+    setEditFormData({
+      title: task.title,
+      description: task.description || '',
+      priority: task.priority,
+      due_date: task.due_date ? new Date(task.due_date).toISOString().slice(0, 16) : '',
+      tags: task.tags || [],
+    });
+    setShowTaskMenu(null);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingTask) return;
+
+    await updateTask(editingTask, {
+      title: editFormData.title,
+      description: editFormData.description,
+      priority: editFormData.priority,
+      due_date: editFormData.due_date || undefined,
+      tags: editFormData.tags,
+    });
+
+    setEditingTask(null);
+    setEditFormData({});
+  };
+
+  const handleCancelEdit = () => {
+    setEditingTask(null);
+    setEditFormData({});
   };
 
   const handleSubtaskAdd = async (subtaskTitle: string, parentId?: string) => {
@@ -202,6 +238,23 @@ export const TaskManager: React.FC = () => {
     }));
   };
 
+  const addEditTag = () => {
+    if (newTag.trim() && !editFormData.tags.includes(newTag.trim())) {
+      setEditFormData(prev => ({
+        ...prev,
+        tags: [...prev.tags, newTag.trim()]
+      }));
+      setNewTag('');
+    }
+  };
+
+  const removeEditTag = (tagToRemove: string) => {
+    setEditFormData(prev => ({
+      ...prev,
+      tags: prev.tags.filter(tag => tag !== tagToRemove)
+    }));
+  };
+
   const handleBrainDump = async (input: string) => {
     const coachingResponse = await getCoachingResponse({
       input,
@@ -239,6 +292,145 @@ export const TaskManager: React.FC = () => {
         return 'bg-green-100 text-green-800 border-green-200';
     }
   };
+
+  const renderEditForm = (task: any) => (
+    <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+          <input
+            type="text"
+            value={editFormData.title}
+            onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <textarea
+            value={editFormData.description}
+            onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+            rows={2}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+            <select
+              value={editFormData.priority}
+              onChange={(e) => setEditFormData({ ...editFormData, priority: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+            <input
+              type="datetime-local"
+              value={editFormData.due_date}
+              onChange={(e) => setEditFormData({ ...editFormData, due_date: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
+          <div className="flex space-x-2 mb-2">
+            <input
+              type="text"
+              value={newTag}
+              onChange={(e) => setNewTag(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addEditTag())}
+              placeholder="Add a tag..."
+              className="flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+            <button
+              type="button"
+              onClick={addEditTag}
+              className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              Add
+            </button>
+          </div>
+          {editFormData.tags && editFormData.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {editFormData.tags.map((tag: string) => (
+                <span
+                  key={tag}
+                  className="flex items-center space-x-1 px-2 py-1 bg-indigo-100 text-indigo-800 text-sm rounded-full"
+                >
+                  <span>{tag}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeEditTag(tag)}
+                    className="text-indigo-600 hover:text-indigo-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex space-x-3">
+          <button
+            onClick={handleSaveEdit}
+            className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <Save className="h-4 w-4" />
+            <span>Save</span>
+          </button>
+          <button
+            onClick={handleCancelEdit}
+            className="flex items-center space-x-2 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+          >
+            <X className="h-4 w-4" />
+            <span>Cancel</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderTaskMenu = (task: any) => (
+    <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-48">
+      <div className="py-1">
+        <button
+          onClick={() => handleEditTask(task)}
+          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+        >
+          <Edit3 className="h-4 w-4" />
+          <span>Edit Task</span>
+        </button>
+        <button
+          onClick={() => handleUpdateTaskStatus(task.id, task.status === 'in_progress' ? 'pending' : 'in_progress')}
+          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+        >
+          <Clock className="h-4 w-4" />
+          <span>{task.status === 'in_progress' ? 'Mark as Pending' : 'Start Working'}</span>
+        </button>
+        <button
+          onClick={() => {
+            deleteTask(task.id);
+            setShowTaskMenu(null);
+          }}
+          className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+        >
+          <Trash2 className="h-4 w-4" />
+          <span>Delete Task</span>
+        </button>
+      </div>
+    </div>
+  );
 
   const renderTask = (task: any, level: number = 0) => (
     <div key={task.id} className={`${level > 0 ? 'ml-8' : ''}`}>
@@ -323,37 +515,21 @@ export const TaskManager: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            {task.status !== 'completed' && (
-              <button
-                onClick={() => handleUpdateTaskStatus(
-                  task.id,
-                  task.status === 'in_progress' ? 'pending' : 'in_progress'
-                )}
-                className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                title={task.status === 'in_progress' ? 'Mark as pending' : 'Start working'}
-              >
-                <Edit3 className="h-4 w-4" />
-              </button>
-            )}
-            
+          <div className="flex items-center space-x-2 relative">
             <button
-              onClick={() => setEditingTask(task.id)}
+              onClick={() => setShowTaskMenu(showTaskMenu === task.id ? null : task.id)}
               className="p-1 text-gray-600 hover:bg-gray-50 rounded"
-              title="Edit task"
+              title="More options"
             >
               <MoreHorizontal className="h-4 w-4" />
             </button>
             
-            <button
-              onClick={() => deleteTask(task.id)}
-              className="p-1 text-red-600 hover:bg-red-50 rounded"
-              title="Delete task"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
+            {showTaskMenu === task.id && renderTaskMenu(task)}
           </div>
         </div>
+
+        {/* Edit Form */}
+        {editingTask === task.id && renderEditForm(task)}
       </div>
       
       {/* Render subtasks */}
@@ -364,6 +540,18 @@ export const TaskManager: React.FC = () => {
       )}
     </div>
   );
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showTaskMenu) {
+        setShowTaskMenu(null);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showTaskMenu]);
 
   if (loading) {
     return (
