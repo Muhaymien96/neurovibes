@@ -15,20 +15,26 @@ import {
   Tag,
   MoreHorizontal
 } from 'lucide-react';
-import { Task, createTask, getTasks, updateTask, deleteTask } from '../lib/supabase';
+import { useTasksStore, useAuthStore } from '../store';
 import { useAICoach } from '../hooks/useAICoach';
-import { useAuth } from '../hooks/useAuth';
 import { AICoachResponse } from './AICoachResponse';
-
-interface ExtendedTask extends Task {
-  subtasks?: ExtendedTask[];
-  isExpanded?: boolean;
-}
+import { Task } from '../lib/supabase';
 
 export const TaskManager: React.FC = () => {
-  const { user } = useAuth();
-  const [tasks, setTasks] = useState<ExtendedTask[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuthStore();
+  const {
+    tasks,
+    loading,
+    error,
+    loadTasks,
+    createTask,
+    updateTask,
+    deleteTask,
+    reorderTask,
+    toggleTaskExpansion,
+    getTaskById
+  } = useTasksStore();
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingTask, setEditingTask] = useState<string | null>(null);
   const [aiResponse, setAiResponse] = useState<any>(null);
@@ -49,45 +55,7 @@ export const TaskManager: React.FC = () => {
 
   useEffect(() => {
     loadTasks();
-  }, []);
-
-  const loadTasks = async () => {
-    try {
-      const { data, error } = await getTasks();
-      if (error) throw error;
-      
-      // Organize tasks into hierarchy
-      const taskMap = new Map<string, ExtendedTask>();
-      const rootTasks: ExtendedTask[] = [];
-      
-      (data || []).forEach(task => {
-        taskMap.set(task.id, { ...task, subtasks: [], isExpanded: false });
-      });
-      
-      taskMap.forEach(task => {
-        if (task.parent_task_id && taskMap.has(task.parent_task_id)) {
-          const parent = taskMap.get(task.parent_task_id)!;
-          parent.subtasks!.push(task);
-        } else {
-          rootTasks.push(task);
-        }
-      });
-      
-      // Sort by task_order
-      rootTasks.sort((a, b) => (a.task_order || 0) - (b.task_order || 0));
-      rootTasks.forEach(task => {
-        if (task.subtasks) {
-          task.subtasks.sort((a, b) => (a.task_order || 0) - (b.task_order || 0));
-        }
-      });
-      
-      setTasks(rootTasks);
-    } catch (error) {
-      console.error('Error loading tasks:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [loadTasks]);
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,78 +75,58 @@ export const TaskManager: React.FC = () => {
       setAiResponse(coachingResponse);
     }
 
-    try {
-      const taskData = {
-        ...newTask,
-        priority: coachingResponse?.priority_suggestion || newTask.priority,
-        parent_task_id: newTask.parent_task_id || undefined,
-        recurrence_pattern: newTask.recurrence_pattern || undefined,
-        recurrence_end_date: newTask.recurrence_end_date || undefined,
-        tags: newTask.tags,
-      };
+    const taskData = {
+      ...newTask,
+      priority: coachingResponse?.priority_suggestion || newTask.priority,
+      parent_task_id: newTask.parent_task_id || undefined,
+      recurrence_pattern: newTask.recurrence_pattern || undefined,
+      recurrence_end_date: newTask.recurrence_end_date || undefined,
+      tags: newTask.tags,
+    };
 
-      const { data, error } = await createTask(taskData);
-      if (error) throw error;
-      if (data) {
-        await loadTasks(); // Reload to get proper hierarchy
-        setNewTask({ 
-          title: '', 
-          description: '', 
-          priority: 'medium', 
-          due_date: '', 
-          parent_task_id: '',
-          recurrence_pattern: '',
-          recurrence_end_date: '',
-          tags: [],
-        });
-        setShowAddForm(false);
-      }
-    } catch (error) {
-      console.error('Error creating task:', error);
+    const createdTask = await createTask(taskData);
+    
+    if (createdTask) {
+      setNewTask({ 
+        title: '', 
+        description: '', 
+        priority: 'medium', 
+        due_date: '', 
+        parent_task_id: '',
+        recurrence_pattern: '',
+        recurrence_end_date: '',
+        tags: [],
+      });
+      setShowAddForm(false);
     }
   };
 
   const handleSubtaskAdd = async (subtaskTitle: string, parentId?: string) => {
-    try {
-      const { data, error } = await createTask({
-        title: subtaskTitle,
-        description: 'Generated from AI coaching',
-        priority: 'medium',
-        due_date: '',
-        parent_task_id: parentId,
-      });
-      if (error) throw error;
-      if (data) {
-        await loadTasks();
-      }
-    } catch (error) {
-      console.error('Error creating subtask:', error);
-    }
+    await createTask({
+      title: subtaskTitle,
+      description: 'Generated from AI coaching',
+      priority: 'medium',
+      due_date: '',
+      parent_task_id: parentId,
+    });
   };
 
   const handleUpdateTaskStatus = async (id: string, status: Task['status']) => {
-    try {
-      const updates: Partial<Task> = { status };
-      if (status === 'completed') {
-        updates.completed_at = new Date().toISOString();
-      }
-      
-      const { data, error } = await updateTask(id, updates);
-      if (error) throw error;
-      if (data) {
-        await loadTasks();
-        
-        // Handle recurring tasks
-        if (status === 'completed' && data.recurrence_pattern) {
-          await createRecurringTask(data);
-        }
-      }
-    } catch (error) {
-      console.error('Error updating task:', error);
+    const updates: Partial<Task> = { status };
+    if (status === 'completed') {
+      updates.completed_at = new Date().toISOString();
+    }
+    
+    await updateTask(id, updates);
+    
+    // Handle recurring tasks
+    const task = getTaskById(id);
+    if (status === 'completed' && task?.recurrence_pattern) {
+      await createRecurringTask(task);
     }
   };
 
-  const createRecurringTask = async (completedTask: Task) => {
+  const createRecurringTask = async (completedTask: any) => {
     if (!completedTask.recurrence_pattern) return;
     
     const now = new Date();
@@ -205,40 +153,15 @@ export const TaskManager: React.FC = () => {
       return; // Don't create if past end date
     }
     
-    try {
-      await createTask({
-        title: completedTask.title,
-        description: completedTask.description,
-        priority: completedTask.priority,
-        due_date: nextDueDate.toISOString(),
-        recurrence_pattern: completedTask.recurrence_pattern,
-        recurrence_end_date: completedTask.recurrence_end_date,
-        tags: completedTask.tags || [],
-      });
-      await loadTasks();
-    } catch (error) {
-      console.error('Error creating recurring task:', error);
-    }
-  };
-
-  const handleDeleteTask = async (id: string) => {
-    try {
-      const { error } = await deleteTask(id);
-      if (error) throw error;
-      await loadTasks();
-    } catch (error) {
-      console.error('Error deleting task:', error);
-    }
-  };
-
-  const handleTaskReorder = async (taskId: string, newOrder: number) => {
-    try {
-      const { error } = await updateTask(taskId, { task_order: newOrder });
-      if (error) throw error;
-      await loadTasks();
-    } catch (error) {
-      console.error('Error reordering task:', error);
-    }
+    await createTask({
+      title: completedTask.title,
+      description: completedTask.description,
+      priority: completedTask.priority,
+      due_date: nextDueDate.toISOString(),
+      recurrence_pattern: completedTask.recurrence_pattern,
+      recurrence_end_date: completedTask.recurrence_end_date,
+      tags: completedTask.tags || [],
+    });
   };
 
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
@@ -255,33 +178,11 @@ export const TaskManager: React.FC = () => {
     e.preventDefault();
     if (!draggedTask || draggedTask === targetTaskId) return;
     
-    const targetTask = findTaskById(targetTaskId);
+    const targetTask = getTaskById(targetTaskId);
     if (targetTask) {
-      handleTaskReorder(draggedTask, (targetTask.task_order || 0) + 1);
+      reorderTask(draggedTask, (targetTask.task_order || 0) + 1);
     }
     setDraggedTask(null);
-  };
-
-  const findTaskById = (id: string): ExtendedTask | null => {
-    for (const task of tasks) {
-      if (task.id === id) return task;
-      if (task.subtasks) {
-        for (const subtask of task.subtasks) {
-          if (subtask.id === id) return subtask;
-        }
-      }
-    }
-    return null;
-  };
-
-  const toggleTaskExpansion = (taskId: string) => {
-    setTasks(prevTasks => 
-      prevTasks.map(task => 
-        task.id === taskId 
-          ? { ...task, isExpanded: !task.isExpanded }
-          : task
-      )
-    );
   };
 
   const addTag = () => {
@@ -339,7 +240,7 @@ export const TaskManager: React.FC = () => {
     }
   };
 
-  const renderTask = (task: ExtendedTask, level: number = 0) => (
+  const renderTask = (task: any, level: number = 0) => (
     <div key={task.id} className={`${level > 0 ? 'ml-8' : ''}`}>
       <div
         draggable
@@ -407,7 +308,7 @@ export const TaskManager: React.FC = () => {
                 {task.tags && task.tags.length > 0 && (
                   <div className="flex items-center space-x-1">
                     <Tag className="h-3 w-3 text-gray-400" />
-                    {task.tags.map(tag => (
+                    {task.tags.map((tag: string) => (
                       <span key={tag} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
                         {tag}
                       </span>
@@ -445,7 +346,7 @@ export const TaskManager: React.FC = () => {
             </button>
             
             <button
-              onClick={() => handleDeleteTask(task.id)}
+              onClick={() => deleteTask(task.id)}
               className="p-1 text-red-600 hover:bg-red-50 rounded"
               title="Delete task"
             >
@@ -458,7 +359,7 @@ export const TaskManager: React.FC = () => {
       {/* Render subtasks */}
       {task.isExpanded && task.subtasks && task.subtasks.length > 0 && (
         <div className="mt-2 space-y-2">
-          {task.subtasks.map(subtask => renderTask(subtask, level + 1))}
+          {task.subtasks.map((subtask: any) => renderTask(subtask, level + 1))}
         </div>
       )}
     </div>
@@ -487,6 +388,13 @@ export const TaskManager: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">{error}</p>
+        </div>
+      )}
 
       {/* Brain Dump Section */}
       <div className="bg-gradient-to-r from-purple-50 to-indigo-50 p-6 rounded-xl border border-purple-100">

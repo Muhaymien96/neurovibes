@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { AppHeader } from './AppHeader';
 import { AppFooter } from './AppFooter';
 import { MainContent } from './MainContent';
 import { AuthModal } from '../AuthModal';
 import { ReminderNotification } from '../ReminderNotification';
-import { useSmartReminders } from '../../hooks/useSmartReminders';
+import { useRemindersStore } from '../../store';
 
 type ActiveTab = 'focus' | 'tasks' | 'mood' | 'reminders' | 'integrations' | 'braindump' | 'profile';
 
@@ -18,10 +18,31 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ user }) => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   
-  const { reminders, dismissReminder, snoozeReminder } = useSmartReminders();
+  const { 
+    reminders, 
+    fetchReminders, 
+    dismissReminder, 
+    snoozeReminder,
+    getHighPriorityReminders 
+  } = useRemindersStore();
+  
+  // Fetch reminders when user is available
+  useEffect(() => {
+    if (user?.id) {
+      fetchReminders(user.id);
+      
+      // Set up periodic refresh
+      const interval = setInterval(() => {
+        fetchReminders(user.id);
+      }, 30 * 60 * 1000); // 30 minutes
+
+      return () => clearInterval(interval);
+    }
+  }, [user?.id, fetchReminders]);
   
   // Show notification for high priority reminders
-  const activeNotification = reminders.find(r => r.priority === 'high');
+  const highPriorityReminders = getHighPriorityReminders();
+  const activeNotification = highPriorityReminders[0];
 
   const handleNotificationDismiss = () => {
     if (activeNotification) {

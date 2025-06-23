@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Mail, Lock, User, AlertCircle, CheckCircle } from 'lucide-react';
-import { signIn, signUp } from '../lib/supabase';
+import { useAuthStore } from '../store';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -16,6 +16,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onM
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const { signIn, signUp } = useAuthStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Bell, 
   X, 
@@ -11,22 +11,32 @@ import {
   Pause,
   CheckCircle
 } from 'lucide-react';
-import { useSmartReminders } from '../hooks/useSmartReminders';
+import { useRemindersStore, useAuthStore } from '../store';
 import { useElevenLabsTTS } from '../hooks/useElevenLabsTTS';
 
 export const SmartReminders: React.FC = () => {
+  const { user } = useAuthStore();
   const { 
     reminders, 
     userPatterns, 
     loading, 
+    error,
+    fetchReminders, 
     dismissReminder, 
     snoozeReminder,
-    fetchSmartReminders 
-  } = useSmartReminders();
+    getHighPriorityReminders,
+    getRemindersByType
+  } = useRemindersStore();
   
   const { speak, stop, isSpeaking } = useElevenLabsTTS();
   const [expandedReminder, setExpandedReminder] = useState<string | null>(null);
   const [showPatterns, setShowPatterns] = useState(false);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchReminders(user.id);
+    }
+  }, [user?.id, fetchReminders]);
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -77,20 +87,37 @@ export const SmartReminders: React.FC = () => {
 
   if (reminders.length === 0) {
     return (
-      <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 border border-green-200">
-        <div className="flex items-center space-x-3 mb-3">
-          <CheckCircle className="h-6 w-6 text-green-600" />
-          <h3 className="font-semibold text-green-900">All caught up!</h3>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Bell className="h-6 w-6 text-indigo-600" />
+            <h3 className="text-2xl font-bold text-gray-900">Smart Reminders</h3>
+          </div>
         </div>
-        <p className="text-green-700 text-sm mb-4">
-          No urgent reminders right now. You're doing great managing your tasks and energy!
-        </p>
-        <button
-          onClick={fetchSmartReminders}
-          className="text-green-600 hover:text-green-700 text-sm font-medium"
-        >
-          Check for updates
-        </button>
+
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-800">{error}</p>
+          </div>
+        )}
+
+        <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 border border-green-200">
+          <div className="flex items-center space-x-3 mb-3">
+            <CheckCircle className="h-6 w-6 text-green-600" />
+            <h3 className="font-semibold text-green-900">All caught up!</h3>
+          </div>
+          <p className="text-green-700 text-sm mb-4">
+            No urgent reminders right now. You're doing great managing your tasks and energy!
+          </p>
+          <button
+            onClick={() => user?.id && fetchReminders(user.id)}
+            className="text-green-600 hover:text-green-700 text-sm font-medium"
+          >
+            Check for updates
+          </button>
+        </div>
       </div>
     );
   }
@@ -101,7 +128,7 @@ export const SmartReminders: React.FC = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <Bell className="h-6 w-6 text-indigo-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Smart Reminders</h3>
+          <h3 className="text-2xl font-bold text-gray-900">Smart Reminders</h3>
           <span className="bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded-full">
             {reminders.length}
           </span>
@@ -116,6 +143,13 @@ export const SmartReminders: React.FC = () => {
           </button>
         )}
       </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">{error}</p>
+        </div>
+      )}
 
       {/* User Patterns */}
       {showPatterns && userPatterns && (
@@ -168,6 +202,7 @@ export const SmartReminders: React.FC = () => {
                   )}
 
                   {reminder.context.energy_recommendation && (
+                    
                     <div className="flex items-center space-x-2 text-xs text-gray-600">
                       <Heart className="h-3 w-3" />
                       <span>{reminder.context.energy_recommendation}</span>
@@ -214,7 +249,7 @@ export const SmartReminders: React.FC = () => {
       {/* Refresh Button */}
       <div className="text-center pt-4">
         <button
-          onClick={fetchSmartReminders}
+          onClick={() => user?.id && fetchReminders(user.id)}
           disabled={loading}
           className="text-sm text-indigo-600 hover:text-indigo-700 disabled:opacity-50"
         >

@@ -1,7 +1,7 @@
 import React from 'react';
 import { User } from '@supabase/supabase-js';
 import { Brain, Sparkles, User as UserIcon, LogOut } from 'lucide-react';
-import { signOut } from '../../lib/supabase';
+import { useAuthStore } from '../../store';
 
 type ActiveTab = 'focus' | 'tasks' | 'mood' | 'reminders' | 'integrations' | 'braindump' | 'profile';
 type ContentPage = 'features' | 'pricing' | 'integrations' | 'help' | 'contact' | 'privacy';
@@ -29,6 +29,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onBackToApp,
   showBackButton = false
 }) => {
+  const { signOut } = useAuthStore();
+
   const handleSignOut = async () => {
     try {
       await signOut();

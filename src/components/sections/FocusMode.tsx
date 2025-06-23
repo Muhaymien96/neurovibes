@@ -4,6 +4,7 @@ import { Brain, Mic, AlertCircle } from 'lucide-react';
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 import { useElevenLabsTTS } from '../../hooks/useElevenLabsTTS';
 import { useAICoach } from '../../hooks/useAICoach';
+import { useAuthStore } from '../../store';
 import { AICoachResponse } from '../AICoachResponse';
 import { VoiceControls } from '../ui/VoiceControls';
 import { QuickActions } from '../ui/QuickActions';
@@ -13,6 +14,7 @@ interface FocusModeProps {
 }
 
 export const FocusMode: React.FC<FocusModeProps> = ({ user }) => {
+  const { user: authUser } = useAuthStore();
   const [aiResponse, setAiResponse] = useState<any>(null);
   const [userTranscript, setUserTranscript] = useState('');
   const [showTranscript, setShowTranscript] = useState(false);
@@ -72,7 +74,7 @@ export const FocusMode: React.FC<FocusModeProps> = ({ user }) => {
       input,
       type: 'voice_note',
       context: {
-        user_id: user?.id,
+        user_id: authUser?.id,
         include_historical_data: true,
       }
     });
@@ -140,7 +142,7 @@ export const FocusMode: React.FC<FocusModeProps> = ({ user }) => {
       input,
       type: 'voice_note',
       context: {
-        user_id: user?.id,
+        user_id: authUser?.id,
         include_historical_data: true,
       }
     });

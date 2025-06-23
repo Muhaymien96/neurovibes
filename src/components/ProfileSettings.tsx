@@ -14,33 +14,20 @@ import {
   Download,
   Upload
 } from 'lucide-react';
-import { useAuth } from '../hooks/useAuth';
-import { getProfile, updateProfile, Profile } from '../lib/supabase';
-
-interface NotificationSettings {
-  email_reminders: boolean;
-  push_notifications: boolean;
-  smart_reminders: boolean;
-  task_deadlines: boolean;
-  mood_check_ins: boolean;
-}
-
-interface PrivacySettings {
-  data_sharing: boolean;
-  analytics: boolean;
-  personalization: boolean;
-}
-
-interface AppearanceSettings {
-  theme: 'light' | 'dark' | 'auto';
-  color_scheme: 'indigo' | 'purple' | 'blue' | 'green';
-  compact_mode: boolean;
-}
+import { useAuthStore, useProfileStore, useSettingsStore } from '../store';
 
 export const ProfileSettings: React.FC = () => {
-  const { user } = useAuth();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuthStore();
+  const { profile, loading, error, loadProfile, updateProfile } = useProfileStore();
+  const { 
+    notifications, 
+    privacy, 
+    appearance, 
+    updateNotifications, 
+    updatePrivacy, 
+    updateAppearance 
+  } = useSettingsStore();
+  
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'privacy' | 'appearance' | 'data'>('profile');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -50,58 +37,23 @@ export const ProfileSettings: React.FC = () => {
     email: '',
   });
 
-  const [notifications, setNotifications] = useState<NotificationSettings>({
-    email_reminders: true,
-    push_notifications: true,
-    smart_reminders: true,
-    task_deadlines: true,
-    mood_check_ins: false,
-  });
-
-  const [privacy, setPrivacy] = useState<PrivacySettings>({
-    data_sharing: false,
-    analytics: true,
-    personalization: true,
-  });
-
-  const [appearance, setAppearance] = useState<AppearanceSettings>({
-    theme: 'light',
-    color_scheme: 'indigo',
-    compact_mode: false,
-  });
-
   useEffect(() => {
     loadProfile();
-  }, []);
+  }, [loadProfile]);
 
-  const loadProfile = async () => {
-    try {
-      const { data, error } = await getProfile();
-      if (error) throw error;
-      
-      if (data) {
-        setProfile(data);
-        setProfileData({
-          full_name: data.full_name || '',
-          email: data.email || '',
-        });
-      }
-    } catch (error) {
-      console.error('Error loading profile:', error);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (profile) {
+      setProfileData({
+        full_name: profile.full_name || '',
+        email: profile.email || '',
+      });
     }
-  };
+  }, [profile]);
 
   const handleSaveProfile = async () => {
     setSaving(true);
     try {
-      const { data, error } = await updateProfile(profileData);
-      if (error) throw error;
-      
-      if (data) {
-        setProfile(data);
-      }
+      await updateProfile(profileData);
     } catch (error) {
       console.error('Error updating profile:', error);
     } finally {
@@ -135,6 +87,13 @@ export const ProfileSettings: React.FC = () => {
         <h3 className="text-2xl font-bold text-gray-900">Profile & Settings</h3>
         <p className="text-gray-600 mt-1">Manage your account settings and preferences</p>
       </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">{error}</p>
+        </div>
+      )}
 
       {/* Tab Navigation */}
       <div className="border-b border-gray-200">
@@ -232,7 +191,7 @@ export const ProfileSettings: React.FC = () => {
                     <input
                       type="checkbox"
                       checked={value}
-                      onChange={(e) => setNotifications({ ...notifications, [key]: e.target.checked })}
+                      onChange={(e) => updateNotifications({ [key]: e.target.checked })}
                       className="sr-only peer"
                     />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
@@ -264,7 +223,7 @@ export const ProfileSettings: React.FC = () => {
                     <input
                       type="checkbox"
                       checked={value}
-                      onChange={(e) => setPrivacy({ ...privacy, [key]: e.target.checked })}
+                      onChange={(e) => updatePrivacy({ [key]: e.target.checked })}
                       className="sr-only peer"
                     />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
@@ -286,7 +245,7 @@ export const ProfileSettings: React.FC = () => {
                   {['light', 'dark', 'auto'].map((theme) => (
                     <button
                       key={theme}
-                      onClick={() => setAppearance({ ...appearance, theme: theme as any })}
+                      onClick={() => updateAppearance({ theme: theme as any })}
                       className={`p-3 border rounded-lg text-center capitalize ${
                         appearance.theme === theme
                           ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
@@ -310,7 +269,7 @@ export const ProfileSettings: React.FC = () => {
                   ].map(({ name, color }) => (
                     <button
                       key={name}
-                      onClick={() => setAppearance({ ...appearance, color_scheme: name as any })}
+                      onClick={() => updateAppearance({ color_scheme: name as any })}
                       className={`p-3 border rounded-lg flex items-center justify-center ${
                         appearance.color_scheme === name
                           ? 'border-gray-800 ring-2 ring-gray-300'
@@ -332,7 +291,7 @@ export const ProfileSettings: React.FC = () => {
                   <input
                     type="checkbox"
                     checked={appearance.compact_mode}
-                    onChange={(e) => setAppearance({ ...appearance, compact_mode: e.target.checked })}
+                    onChange={(e) => updateAppearance({ compact_mode: e.target.checked })}
                     className="sr-only peer"
                   />
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>

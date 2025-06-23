@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, Battery, Focus, Plus, TrendingUp, BarChart3, Calendar, Lightbulb } from 'lucide-react';
-import { MoodEntry, createMoodEntry, getMoodEntries } from '../lib/supabase';
+import { useMoodStore, useAuthStore } from '../store';
 import { useAICoach } from '../hooks/useAICoach';
-import { useAuth } from '../hooks/useAuth';
 
 interface MoodInsights {
   productivity_patterns: string[];
@@ -12,11 +11,19 @@ interface MoodInsights {
 }
 
 export const MoodTracker: React.FC = () => {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
+  const { 
+    entries, 
+    loading, 
+    error, 
+    loadEntries, 
+    createEntry, 
+    getAverages, 
+    getRecentTrend 
+  } = useMoodStore();
+  
   const { getContextualInsights } = useAICoach();
-  const [moodEntries, setMoodEntries] = useState<MoodEntry[]>([]);
   const [insights, setInsights] = useState<MoodInsights | null>(null);
-  const [loading, setLoading] = useState(true);
   const [insightsLoading, setInsightsLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showInsights, setShowInsights] = useState(false);
@@ -29,20 +36,8 @@ export const MoodTracker: React.FC = () => {
   });
 
   useEffect(() => {
-    loadMoodEntries();
-  }, []);
-
-  const loadMoodEntries = async () => {
-    try {
-      const { data, error } = await getMoodEntries(30); // Last 30 entries
-      if (error) throw error;
-      setMoodEntries(data || []);
-    } catch (error) {
-      console.error('Error loading mood entries:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    loadEntries();
+  }, [loadEntries]);
 
   const loadInsights = async () => {
     if (!user?.id) return;
@@ -62,16 +57,11 @@ export const MoodTracker: React.FC = () => {
 
   const handleCreateEntry = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const { data, error } = await createMoodEntry(newEntry);
-      if (error) throw error;
-      if (data) {
-        setMoodEntries([data, ...moodEntries]);
-        setNewEntry({ mood_score: 5, energy_level: 5, focus_level: 5, notes: '' });
-        setShowAddForm(false);
-      }
-    } catch (error) {
-      console.error('Error creating mood entry:', error);
+    const createdEntry = await createEntry(newEntry);
+    
+    if (createdEntry) {
+      setNewEntry({ mood_score: 5, energy_level: 5, focus_level: 5, notes: '' });
+      setShowAddForm(false);
     }
   };
 
@@ -87,31 +77,8 @@ export const MoodTracker: React.FC = () => {
     return 'bg-green-100';
   };
 
-  const calculateAverages = (entries: MoodEntry[], days: number) => {
-    const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-    const recentEntries = entries.filter(entry => new Date(entry.created_at) >= cutoffDate);
-    
-    if (recentEntries.length === 0) return null;
-    
-    const totals = recentEntries.reduce(
-      (acc, entry) => ({
-        mood: acc.mood + entry.mood_score,
-        energy: acc.energy + entry.energy_level,
-        focus: acc.focus + entry.focus_level,
-      }),
-      { mood: 0, energy: 0, focus: 0 }
-    );
-    
-    return {
-      mood: (totals.mood / recentEntries.length).toFixed(1),
-      energy: (totals.energy / recentEntries.length).toFixed(1),
-      focus: (totals.focus / recentEntries.length).toFixed(1),
-      count: recentEntries.length,
-    };
-  };
-
   const renderTrendChart = () => {
-    if (moodEntries.length < 2) {
+    if (entries.length < 2) {
       return (
         <div className="text-center py-8 text-gray-500">
           <BarChart3 className="h-12 w-12 mx-auto mb-2 text-gray-400" />
@@ -120,8 +87,7 @@ export const MoodTracker: React.FC = () => {
       );
     }
 
-    const last7Days = moodEntries.slice(0, 7).reverse();
-    const maxScore = 10;
+    const last7Days = entries.slice(0, 7).reverse();
     
     return (
       <div className="space-y-4">
@@ -269,8 +235,8 @@ export const MoodTracker: React.FC = () => {
     );
   }
 
-  const weeklyAvg = calculateAverages(moodEntries, 7);
-  const monthlyAvg = calculateAverages(moodEntries, 30);
+  const weeklyAvg = getAverages(7);
+  const monthlyAvg = getAverages(30);
 
   return (
     <div className="space-y-6">
@@ -315,6 +281,13 @@ export const MoodTracker: React.FC = () => {
         </div>
       </div>
 
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">{error}</p>
+        </div>
+      )}
+
       {/* Summary Cards */}
       {(weeklyAvg || monthlyAvg) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -326,20 +299,20 @@ export const MoodTracker: React.FC = () => {
               </h4>
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
-                  <div className={`text-2xl font-bold ${getScoreColor(parseFloat(weeklyAvg.mood))}`}>
-                    {weeklyAvg.mood}
+                  <div className={`text-2xl font-bold ${getScoreColor(weeklyAvg.mood)}`}>
+                    {weeklyAvg.mood.toFixed(1)}
                   </div>
                   <div className="text-xs text-gray-600">Mood</div>
                 </div>
                 <div>
-                  <div className={`text-2xl font-bold ${getScoreColor(parseFloat(weeklyAvg.energy))}`}>
-                    {weeklyAvg.energy}
+                  <div className={`text-2xl font-bold ${getScoreColor(weeklyAvg.energy)}`}>
+                    {weeklyAvg.energy.toFixed(1)}
                   </div>
                   <div className="text-xs text-gray-600">Energy</div>
                 </div>
                 <div>
-                  <div className={`text-2xl font-bold ${getScoreColor(parseFloat(weeklyAvg.focus))}`}>
-                    {weeklyAvg.focus}
+                  <div className={`text-2xl font-bold ${getScoreColor(weeklyAvg.focus)}`}>
+                    {weeklyAvg.focus.toFixed(1)}
                   </div>
                   <div className="text-xs text-gray-600">Focus</div>
                 </div>
@@ -355,20 +328,20 @@ export const MoodTracker: React.FC = () => {
               </h4>
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
-                  <div className={`text-2xl font-bold ${getScoreColor(parseFloat(monthlyAvg.mood))}`}>
-                    {monthlyAvg.mood}
+                  <div className={`text-2xl font-bold ${getScoreColor(monthlyAvg.mood)}`}>
+                    {monthlyAvg.mood.toFixed(1)}
                   </div>
                   <div className="text-xs text-gray-600">Mood</div>
                 </div>
                 <div>
-                  <div className={`text-2xl font-bold ${getScoreColor(parseFloat(monthlyAvg.energy))}`}>
-                    {monthlyAvg.energy}
+                  <div className={`text-2xl font-bold ${getScoreColor(monthlyAvg.energy)}`}>
+                    {monthlyAvg.energy.toFixed(1)}
                   </div>
                   <div className="text-xs text-gray-600">Energy</div>
                 </div>
                 <div>
-                  <div className={`text-2xl font-bold ${getScoreColor(parseFloat(monthlyAvg.focus))}`}>
-                    {monthlyAvg.focus}
+                  <div className={`text-2xl font-bold ${getScoreColor(monthlyAvg.focus)}`}>
+                    {monthlyAvg.focus.toFixed(1)}
                   </div>
                   <div className="text-xs text-gray-600">Focus</div>
                 </div>
@@ -521,14 +494,14 @@ export const MoodTracker: React.FC = () => {
             <span>Recent Entries</span>
           </h4>
           
-          {moodEntries.length === 0 ? (
+          {entries.length === 0 ? (
             <div className="text-center py-12">
               <Heart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h4 className="text-lg font-medium text-gray-900 mb-2">No mood entries yet</h4>
               <p className="text-gray-600">Start tracking your mood to see patterns and insights!</p>
             </div>
           ) : (
-            moodEntries.slice(0, 10).map((entry) => (
+            entries.slice(0, 10).map((entry) => (
               <div
                 key={entry.id}
                 className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm"
