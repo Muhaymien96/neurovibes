@@ -18,7 +18,10 @@ import {
   X,
   Lightbulb,
   Target,
-  Sparkles
+  Sparkles,
+  Play,
+  Pause,
+  RotateCcw
 } from 'lucide-react';
 import { useTasksStore, useAuthStore } from '../store';
 import { useAICoach } from '../hooks/useAICoach';
@@ -159,7 +162,6 @@ export const TaskManager: React.FC = () => {
       if (createdTask) {
         console.log('Task created successfully:', createdTask);
         
-        // Create subtasks if they exist
         if (taskSuggestion.subtasks && taskSuggestion.subtasks.length > 0) {
           console.log('Creating subtasks:', taskSuggestion.subtasks);
           
@@ -205,6 +207,10 @@ export const TaskManager: React.FC = () => {
     } catch (error) {
       console.error('Error adding all tasks:', error);
     }
+  };
+
+  const handleRejectSuggestions = () => {
+    setAiResponse(null);
   };
 
   const handleEditTask = (task: any) => {
@@ -367,6 +373,41 @@ export const TaskManager: React.FC = () => {
         return <Clock className="h-5 w-5 text-blue-600" />;
       default:
         return <AlertCircle className="h-5 w-5 text-gray-400" />;
+    }
+  };
+
+  const getStatusButton = (task: any) => {
+    switch (task.status) {
+      case 'completed':
+        return (
+          <button
+            onClick={() => handleUpdateTaskStatus(task.id, 'pending')}
+            className="p-1 text-green-600 hover:bg-green-50 rounded"
+            title="Mark as pending"
+          >
+            <RotateCcw className="h-4 w-4" />
+          </button>
+        );
+      case 'in_progress':
+        return (
+          <button
+            onClick={() => handleUpdateTaskStatus(task.id, 'completed')}
+            className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+            title="Mark as completed"
+          >
+            <CheckCircle className="h-4 w-4" />
+          </button>
+        );
+      default:
+        return (
+          <button
+            onClick={() => handleUpdateTaskStatus(task.id, 'in_progress')}
+            className="p-1 text-gray-600 hover:bg-gray-50 rounded"
+            title="Start working"
+          >
+            <Play className="h-4 w-4" />
+          </button>
+        );
     }
   };
 
@@ -535,15 +576,7 @@ export const TaskManager: React.FC = () => {
           <div className="flex items-start space-x-3 flex-grow">
             <GripVertical className="h-4 w-4 text-gray-400 mt-1 cursor-move" />
             
-            <button
-              onClick={() => handleUpdateTaskStatus(
-                task.id,
-                task.status === 'completed' ? 'pending' : 'completed'
-              )}
-              className="mt-1"
-            >
-              {getStatusIcon(task.status)}
-            </button>
+            {getStatusButton(task)}
             
             <div className="flex-grow">
               <div className="flex items-center space-x-2 mb-2">
@@ -715,6 +748,7 @@ export const TaskManager: React.FC = () => {
           onSubtaskAdd={(subtask) => handleSubtaskAdd(subtask)}
           onTaskAdd={handleTaskAdd}
           onAddAllTasks={handleAddAllTasks}
+          onRejectSuggestions={handleRejectSuggestions}
         />
       )}
 

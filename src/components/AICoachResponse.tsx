@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Brain, Volume2, VolumeX, Sparkles, CheckCircle, Clock, Plus, Target, Lightbulb, Edit3 } from 'lucide-react';
+import { Brain, Volume2, VolumeX, Sparkles, CheckCircle, Clock, Plus, Target, Lightbulb, Edit3, X, Trash2 } from 'lucide-react';
 import { useElevenLabsTTS } from '../hooks/useElevenLabsTTS';
 import { TaskEditForm } from './TaskEditForm';
 
@@ -28,23 +28,27 @@ interface AICoachResponseProps {
   onSubtaskAdd?: (subtask: string) => void;
   onTaskAdd?: (task: TaskSuggestion) => Promise<void>;
   onAddAllTasks?: (tasks: TaskSuggestion[]) => Promise<void>;
+  onRejectSuggestions?: () => void;
 }
 
 export const AICoachResponse: React.FC<AICoachResponseProps> = ({ 
   response, 
   onSubtaskAdd,
   onTaskAdd,
-  onAddAllTasks
+  onAddAllTasks,
+  onRejectSuggestions
 }) => {
   const { speak, stop, isSpeaking, loading } = useElevenLabsTTS();
   const [editingTask, setEditingTask] = useState<number | null>(null);
   const [editedTasks, setEditedTasks] = useState<TaskSuggestion[]>(response.suggested_tasks || []);
   const [addingTasks, setAddingTasks] = useState(false);
   const [addingTaskIndex, setAddingTaskIndex] = useState<number | null>(null);
+  const [removedTaskIndices, setRemovedTaskIndices] = useState<Set<number>>(new Set());
 
   React.useEffect(() => {
     if (response.suggested_tasks) {
       setEditedTasks(response.suggested_tasks);
+      setRemovedTaskIndices(new Set());
     }
   }, [response.suggested_tasks]);
 
@@ -71,11 +75,15 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
   };
 
   const handleAddAllTasks = async () => {
-    if (!editedTasks || editedTasks.length === 0 || !onAddAllTasks) return;
+    const tasksToAdd = editedTasks.filter((_, index) => !removedTaskIndices.has(index));
+    if (tasksToAdd.length === 0 || !onAddAllTasks) return;
     
     setAddingTasks(true);
     try {
-      await onAddAllTasks(editedTasks);
+      await onAddAllTasks(tasksToAdd);
+      // Mark all remaining tasks as removed after successful addition
+      const allIndices = new Set(editedTasks.map((_, index) => index));
+      setRemovedTaskIndices(allIndices);
     } catch (error) {
       console.error('Error adding all tasks:', error);
     } finally {
@@ -89,11 +97,17 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
     setAddingTaskIndex(index);
     try {
       await onTaskAdd(task);
+      // Remove this task from the suggestions after successful addition
+      setRemovedTaskIndices(prev => new Set([...prev, index]));
     } catch (error) {
       console.error('Error adding single task:', error);
     } finally {
       setAddingTaskIndex(null);
     }
+  };
+
+  const handleRemoveTask = (index: number) => {
+    setRemovedTaskIndices(prev => new Set([...prev, index]));
   };
 
   const handleEditTask = (index: number) => {
@@ -167,6 +181,8 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
   };
 
   const isWorkloadBreakdown = editedTasks && editedTasks.length > 0;
+  const visibleTasks = editedTasks.filter((_, index) => !removedTaskIndices.has(index));
+  const hasVisibleTasks = visibleTasks.length > 0;
 
   return (
     <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-6 rounded-2xl border border-indigo-100 shadow-sm">
@@ -243,7 +259,7 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
             )}
             <span className="flex items-center space-x-1 text-indigo-700">
               <Target className="h-4 w-4" />
-              <span>{editedTasks?.length || 0} tasks suggested</span>
+              <span>{hasVisibleTasks ? visibleTasks.length : 0} tasks suggested</span>
             </span>
           </div>
         )}
@@ -261,115 +277,148 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
       )}
 
       {/* Suggested Tasks for workload breakdown */}
-      {isWorkloadBreakdown && editedTasks && editedTasks.length > 0 && (
+      {isWorkloadBreakdown && hasVisibleTasks && (
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
             <h4 className="font-medium text-indigo-900">Suggested Tasks</h4>
-            {onAddAllTasks && (
-              <button
-                onClick={handleAddAllTasks}
-                disabled={addingTasks}
-                className="flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {addingTasks ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Adding...</span>
-                  </>
-                ) : (
-                  <>
-                    <Plus className="h-4 w-4" />
-                    <span>Add All</span>
-                  </>
-                )}
-              </button>
-            )}
+            <div className="flex items-center space-x-2">
+              {onAddAllTasks && (
+                <button
+                  onClick={handleAddAllTasks}
+                  disabled={addingTasks}
+                  className="flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {addingTasks ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Adding...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4" />
+                      <span>Add All</span>
+                    </>
+                  )}
+                </button>
+              )}
+              {onRejectSuggestions && (
+                <button
+                  onClick={onRejectSuggestions}
+                  className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm"
+                >
+                  <X className="h-4 w-4" />
+                  <span>Reject All</span>
+                </button>
+              )}
+            </div>
           </div>
           
           <div className="space-y-4">
-            {editedTasks.map((task, index) => (
-              <div key={index} className="bg-white p-4 rounded-lg border border-indigo-100">
-                {editingTask === index ? (
-                  <TaskEditForm
-                    task={task}
-                    index={index}
-                    onSave={handleSaveEdit}
-                    onCancel={handleCancelEdit}
-                    onUpdateTask={updateEditedTask}
-                    onAddSubtask={addSubtaskToEdit}
-                    onRemoveSubtask={removeSubtaskFromEdit}
-                    onAddTag={addTagToEdit}
-                    onRemoveTag={removeTagFromEdit}
-                  />
-                ) : (
-                  <>
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-grow">
-                        <h5 className="font-medium text-gray-900 mb-1">{task.title}</h5>
-                        <p className="text-gray-600 text-sm mb-2">{task.description}</p>
-                        
-                        <div className="flex items-center space-x-3 text-xs mb-3">
-                          <span className={`px-2 py-1 rounded-full ${getPriorityColor(task.priority)}`}>
-                            {task.priority} priority
-                          </span>
-                          <span className="text-gray-500">~{task.estimated_time}</span>
-                          {task.tags && task.tags.length > 0 && (
-                            <div className="flex items-center space-x-1">
-                              {task.tags.map(tag => (
-                                <span key={tag} className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
-                                  {tag}
-                                </span>
-                              ))}
+            {editedTasks.map((task, index) => {
+              if (removedTaskIndices.has(index)) return null;
+              
+              return (
+                <div key={index} className="bg-white p-4 rounded-lg border border-indigo-100">
+                  {editingTask === index ? (
+                    <TaskEditForm
+                      task={task}
+                      index={index}
+                      onSave={handleSaveEdit}
+                      onCancel={handleCancelEdit}
+                      onUpdateTask={updateEditedTask}
+                      onAddSubtask={addSubtaskToEdit}
+                      onRemoveSubtask={removeSubtaskFromEdit}
+                      onAddTag={addTagToEdit}
+                      onRemoveTag={removeTagFromEdit}
+                    />
+                  ) : (
+                    <>
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-grow">
+                          <h5 className="font-medium text-gray-900 mb-1">{task.title}</h5>
+                          <p className="text-gray-600 text-sm mb-2">{task.description}</p>
+                          
+                          <div className="flex items-center space-x-3 text-xs mb-3">
+                            <span className={`px-2 py-1 rounded-full ${getPriorityColor(task.priority)}`}>
+                              {task.priority} priority
+                            </span>
+                            <span className="text-gray-500">~{task.estimated_time}</span>
+                            {task.tags && task.tags.length > 0 && (
+                              <div className="flex items-center space-x-1">
+                                {task.tags.map(tag => (
+                                  <span key={tag} className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          {task.subtasks && task.subtasks.length > 0 && (
+                            <div className="mt-3">
+                              <p className="text-xs font-medium text-gray-700 mb-1">Subtasks:</p>
+                              <ul className="text-xs text-gray-600 space-y-1">
+                                {task.subtasks.map((subtask, subIndex) => (
+                                  <li key={subIndex} className="flex items-start space-x-2">
+                                    <span className="text-indigo-500 mt-0.5">•</span>
+                                    <span>{subtask}</span>
+                                  </li>
+                                ))}
+                              </ul>
                             </div>
                           )}
                         </div>
-
-                        {task.subtasks && task.subtasks.length > 0 && (
-                          <div className="mt-3">
-                            <p className="text-xs font-medium text-gray-700 mb-1">Subtasks:</p>
-                            <ul className="text-xs text-gray-600 space-y-1">
-                              {task.subtasks.map((subtask, subIndex) => (
-                                <li key={subIndex} className="flex items-start space-x-2">
-                                  <span className="text-indigo-500 mt-0.5">•</span>
-                                  <span>{subtask}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center space-x-2 ml-3">
-                        <button
-                          onClick={() => handleEditTask(index)}
-                          className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-                          title="Edit task"
-                        >
-                          <Edit3 className="h-4 w-4" />
-                        </button>
                         
-                        {onTaskAdd && (
+                        <div className="flex items-center space-x-2 ml-3">
                           <button
-                            onClick={() => handleAddSingleTask(task, index)}
-                            disabled={addingTaskIndex === index}
-                            className="px-3 py-1 bg-indigo-600 text-white text-xs rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            onClick={() => handleEditTask(index)}
+                            className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                            title="Edit task"
                           >
-                            {addingTaskIndex === index ? (
-                              <div className="flex items-center space-x-1">
-                                <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
-                                <span>Adding...</span>
-                              </div>
-                            ) : (
-                              'Add Task'
-                            )}
+                            <Edit3 className="h-4 w-4" />
                           </button>
-                        )}
+                          
+                          <button
+                            onClick={() => handleRemoveTask(index)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Remove task"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                          
+                          {onTaskAdd && (
+                            <button
+                              onClick={() => handleAddSingleTask(task, index)}
+                              disabled={addingTaskIndex === index}
+                              className="px-3 py-1 bg-indigo-600 text-white text-xs rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {addingTaskIndex === index ? (
+                                <div className="flex items-center space-x-1">
+                                  <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+                                  <span>Adding...</span>
+                                </div>
+                              ) : (
+                                'Add Task'
+                              )}
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            ))}
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Show message when all tasks are removed/added */}
+      {isWorkloadBreakdown && !hasVisibleTasks && editedTasks.length > 0 && (
+        <div className="mb-6 bg-green-50 p-4 rounded-xl border border-green-200">
+          <div className="flex items-center space-x-2">
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            <p className="text-green-800 text-sm">All suggested tasks have been processed!</p>
           </div>
         </div>
       )}
