@@ -49,7 +49,7 @@ export interface MoodEntry {
 export interface UserIntegration {
   id: string;
   user_id: string;
-  integration_type: 'google_calendar' | 'notion';
+  integration_type: 'google_calendar';
   access_token?: string;
   refresh_token?: string;
   expires_at?: string;
@@ -66,7 +66,7 @@ export interface SyncMapping {
   user_id: string;
   mindmesh_task_id?: string;
   external_id: string;
-  integration_type: 'google_calendar' | 'notion';
+  integration_type: 'google_calendar';
   sync_direction: 'import' | 'export' | 'bidirectional';
   last_synced_at: string;
   created_at: string;
@@ -90,6 +90,17 @@ export const signIn = async (email: string, password: string) => {
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
+  });
+  return { data, error };
+};
+
+export const signInWithGoogle = async () => {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      scopes: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events',
+      redirectTo: `${window.location.origin}/auth/callback`,
+    },
   });
   return { data, error };
 };
@@ -251,7 +262,7 @@ export const deleteIntegration = async (id: string) => {
 };
 
 // Sync mapping operations
-export const getSyncMappings = async (integrationType?: 'google_calendar' | 'notion') => {
+export const getSyncMappings = async (integrationType?: 'google_calendar') => {
   let query = supabase
     .from('sync_mappings')
     .select('*')
