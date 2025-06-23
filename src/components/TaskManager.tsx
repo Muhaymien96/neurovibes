@@ -97,6 +97,7 @@ export const TaskManager: React.FC = () => {
       parent_task_id: newTask.parent_task_id || undefined,
       recurrence_pattern: newTask.recurrence_pattern || undefined,
       recurrence_end_date: newTask.recurrence_end_date || undefined,
+      due_date: newTask.due_date || undefined,
       tags: newTask.tags,
     };
 
@@ -145,7 +146,7 @@ export const TaskManager: React.FC = () => {
         title: taskSuggestion.title,
         description: taskSuggestion.description,
         priority: taskSuggestion.priority,
-        due_date: '',
+        due_date: undefined,
         parent_task_id: undefined,
         recurrence_pattern: undefined,
         recurrence_end_date: undefined,
@@ -167,7 +168,7 @@ export const TaskManager: React.FC = () => {
               title: subtaskTitle,
               description: `Subtask of: ${taskSuggestion.title}`,
               priority: 'medium' as Task['priority'],
-              due_date: '',
+              due_date: undefined,
               parent_task_id: createdTask.id,
               tags: ['subtask'],
             };
@@ -245,7 +246,7 @@ export const TaskManager: React.FC = () => {
       title: subtaskTitle,
       description: 'Generated from AI coaching',
       priority: 'medium' as Task['priority'],
-      due_date: '',
+      due_date: undefined,
       parent_task_id: parentId,
     };
     
