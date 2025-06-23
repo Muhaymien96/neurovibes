@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Brain, Volume2, VolumeX, Sparkles, CheckCircle, Clock, Plus, Target, Lightbulb, Edit3, Save, X } from 'lucide-react';
+import { Brain, Volume2, VolumeX, Sparkles, CheckCircle, Clock, Plus, Target, Lightbulb, Edit3 } from 'lucide-react';
 import { useElevenLabsTTS } from '../hooks/useElevenLabsTTS';
+import { TaskEditForm } from './TaskEditForm';
 
 interface TaskSuggestion {
   title: string;
@@ -167,177 +168,6 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
 
   const isWorkloadBreakdown = editedTasks && editedTasks.length > 0;
 
-  const renderTaskEditForm = (task: TaskSuggestion, index: number) => {
-    const [newSubtask, setNewSubtask] = useState('');
-    const [newTag, setNewTag] = useState('');
-
-    return (
-      <div className="space-y-4 p-4 bg-gray-50 rounded-lg border mt-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-          <input
-            type="text"
-            value={task.title}
-            onChange={(e) => updateEditedTask(index, 'title', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-          <textarea
-            value={task.description}
-            onChange={(e) => updateEditedTask(index, 'description', e.target.value)}
-            rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-            <select
-              value={task.priority}
-              onChange={(e) => updateEditedTask(index, 'priority', e.target.value as TaskSuggestion['priority'])}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Estimated Time</label>
-            <input
-              type="text"
-              value={task.estimated_time}
-              onChange={(e) => updateEditedTask(index, 'estimated_time', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="e.g., 2 hours, 30 minutes"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Subtasks</label>
-          <div className="space-y-2">
-            {task.subtasks?.map((subtask, subtaskIndex) => (
-              <div key={subtaskIndex} className="flex items-center space-x-2">
-                <span className="flex-grow text-sm bg-white px-3 py-2 border border-gray-300 rounded-lg">
-                  {subtask}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => removeSubtaskFromEdit(index, subtaskIndex)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
-            <div className="flex space-x-2">
-              <input
-                type="text"
-                value={newSubtask}
-                onChange={(e) => setNewSubtask(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addSubtaskToEdit(index, newSubtask);
-                    setNewSubtask('');
-                  }
-                }}
-                placeholder="Add a subtask..."
-                className="flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  addSubtaskToEdit(index, newSubtask);
-                  setNewSubtask('');
-                }}
-                className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-              >
-                Add
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
-          <div className="space-y-2">
-            {task.tags && task.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {task.tags.map((tag, tagIndex) => (
-                  <span
-                    key={tagIndex}
-                    className="flex items-center space-x-1 px-2 py-1 bg-indigo-100 text-indigo-800 text-sm rounded-full"
-                  >
-                    <span>{tag}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeTagFromEdit(index, tagIndex)}
-                      className="text-indigo-600 hover:text-indigo-800"
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-            <div className="flex space-x-2">
-              <input
-                type="text"
-                value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addTagToEdit(index, newTag);
-                    setNewTag('');
-                  }
-                }}
-                placeholder="Add a tag..."
-                className="flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  addTagToEdit(index, newTag);
-                  setNewTag('');
-                }}
-                className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-              >
-                Add
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex space-x-3">
-          <button
-            type="button"
-            onClick={() => handleSaveEdit(index)}
-            className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-          >
-            <Save className="h-4 w-4" />
-            <span>Save</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => handleCancelEdit(index)}
-            className="flex items-center space-x-2 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
-          >
-            <X className="h-4 w-4" />
-            <span>Cancel</span>
-          </button>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-6 rounded-2xl border border-indigo-100 shadow-sm">
       {/* Header */}
@@ -460,7 +290,17 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
             {editedTasks.map((task, index) => (
               <div key={index} className="bg-white p-4 rounded-lg border border-indigo-100">
                 {editingTask === index ? (
-                  renderTaskEditForm(task, index)
+                  <TaskEditForm
+                    task={task}
+                    index={index}
+                    onSave={handleSaveEdit}
+                    onCancel={handleCancelEdit}
+                    onUpdateTask={updateEditedTask}
+                    onAddSubtask={addSubtaskToEdit}
+                    onRemoveSubtask={removeSubtaskFromEdit}
+                    onAddTag={addTagToEdit}
+                    onRemoveTag={removeTagFromEdit}
+                  />
                 ) : (
                   <>
                     <div className="flex items-start justify-between mb-2">
