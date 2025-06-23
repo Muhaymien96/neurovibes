@@ -25,23 +25,6 @@ import { useAICoach } from '../hooks/useAICoach';
 import { AICoachResponse } from './AICoachResponse';
 import { Task } from '../lib/supabase';
 
-interface TaskSuggestion {
-  title: string;
-  description: string;
-  priority: 'low' | 'medium' | 'high';
-  estimated_time: string;
-  subtasks?: string[];
-  tags?: string[];
-}
-
-interface WorkloadBreakdown {
-  analysis: string;
-  suggested_tasks: TaskSuggestion[];
-  overall_strategy: string;
-  time_estimate: string;
-  encouragement: string;
-}
-
 export const TaskManager: React.FC = () => {
   const { user } = useAuthStore();
   const {
@@ -60,12 +43,10 @@ export const TaskManager: React.FC = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingTask, setEditingTask] = useState<string | null>(null);
   const [aiResponse, setAiResponse] = useState<any>(null);
-  const [workloadBreakdown, setWorkloadBreakdown] = useState<WorkloadBreakdown | null>(null);
   const [draggedTask, setDraggedTask] = useState<string | null>(null);
   const [showTaskMenu, setShowTaskMenu] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState<any>({});
-  const [brainDumpInput, setBrainDumpInput] = useState('');
-  const [processingWorkload, setProcessingWorkload] = useState(false);
+  const [workloadInput, setWorkloadInput] = useState('');
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
@@ -129,91 +110,24 @@ export const TaskManager: React.FC = () => {
   };
 
   const handleWorkloadBreakdown = async () => {
-    if (!brainDumpInput.trim()) return;
+    if (!workloadInput.trim()) return;
     
-    setProcessingWorkload(true);
-    setWorkloadBreakdown(null);
-    
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/workload-breakdown`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            workload_description: brainDumpInput,
-            existing_tasks: tasks.map(t => ({ title: t.title, priority: t.priority, status: t.status })),
-            user_id: user?.id,
-            context: {
-              include_historical_data: true,
-            }
-          }),
-        }
-      );
-
-      if (response.ok) {
-        const breakdown = await response.json();
-        setWorkloadBreakdown(breakdown);
-        setBrainDumpInput('');
-      } else {
-        console.error('Failed to get workload breakdown');
+    // Use the existing AI coach system with a special workload breakdown type
+    const response = await getCoachingResponse({
+      input: workloadInput,
+      type: 'brain_dump', // Use brain_dump type for workload analysis
+      context: {
+        existing_tasks: tasks.map(t => ({ title: t.title, priority: t.priority, status: t.status })),
+        user_id: user?.id,
+        include_historical_data: true,
+        workload_breakdown: true, // Special flag for workload breakdown
       }
-    } catch (error) {
-      console.error('Error getting workload breakdown:', error);
-    } finally {
-      setProcessingWorkload(false);
+    });
+
+    if (response) {
+      setAiResponse(response);
+      setWorkloadInput('');
     }
-  };
-
-  const handleAddSuggestedTask = async (suggestion: TaskSuggestion, asSubtask?: boolean, parentId?: string) => {
-    const taskData = {
-      title: suggestion.title,
-      description: suggestion.description,
-      priority: suggestion.priority,
-      due_date: '',
-      parent_task_id: asSubtask ? parentId : undefined,
-      tags: suggestion.tags || [],
-    };
-
-    await createTask(taskData);
-  };
-
-  const handleAddAllSuggestedTasks = async () => {
-    if (!workloadBreakdown) return;
-    
-    for (const suggestion of workloadBreakdown.suggested_tasks) {
-      await handleAddSuggestedTask(suggestion);
-      
-      // Add subtasks if they exist
-      if (suggestion.subtasks && suggestion.subtasks.length > 0) {
-        // Create the main task first, then add subtasks
-        const mainTask = await createTask({
-          title: suggestion.title,
-          description: suggestion.description,
-          priority: suggestion.priority,
-          due_date: '',
-          tags: suggestion.tags || [],
-        });
-        
-        if (mainTask) {
-          for (const subtaskTitle of suggestion.subtasks) {
-            await createTask({
-              title: subtaskTitle,
-              description: `Subtask of: ${suggestion.title}`,
-              priority: 'medium',
-              due_date: '',
-              parent_task_id: mainTask.id,
-              tags: suggestion.tags || [],
-            });
-          }
-        }
-      }
-    }
-    
-    setWorkloadBreakdown(null);
   };
 
   const handleEditTask = (task: any) => {
@@ -386,134 +300,6 @@ export const TaskManager: React.FC = () => {
       case 'low':
         return 'bg-green-100 text-green-800 border-green-200';
     }
-  };
-
-  const renderWorkloadBreakdown = () => {
-    if (!workloadBreakdown) return null;
-
-    return (
-      <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-6 rounded-2xl border border-indigo-100 shadow-sm">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center">
-              <Lightbulb className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-indigo-900">AI Workload Analysis</h3>
-              <p className="text-sm text-indigo-600">Smart task breakdown for your workload</p>
-            </div>
-          </div>
-          
-          <button
-            onClick={() => setWorkloadBreakdown(null)}
-            className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-white/50"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* Analysis */}
-        <div className="mb-6">
-          <h4 className="font-medium text-indigo-900 mb-2">Analysis</h4>
-          <p className="text-indigo-800 leading-relaxed mb-3">{workloadBreakdown.analysis}</p>
-          
-          <div className="flex items-center space-x-4 text-sm">
-            <span className="flex items-center space-x-1 text-indigo-700">
-              <Clock className="h-4 w-4" />
-              <span>Estimated time: {workloadBreakdown.time_estimate}</span>
-            </span>
-            <span className="flex items-center space-x-1 text-indigo-700">
-              <Target className="h-4 w-4" />
-              <span>{workloadBreakdown.suggested_tasks.length} tasks suggested</span>
-            </span>
-          </div>
-        </div>
-
-        {/* Strategy */}
-        <div className="mb-6 bg-white/70 p-4 rounded-xl">
-          <h4 className="font-medium text-indigo-900 mb-2 flex items-center space-x-2">
-            <Brain className="h-4 w-4" />
-            <span>Recommended Strategy</span>
-          </h4>
-          <p className="text-indigo-800 text-sm leading-relaxed">{workloadBreakdown.overall_strategy}</p>
-        </div>
-
-        {/* Suggested Tasks */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="font-medium text-indigo-900">Suggested Tasks</h4>
-            <button
-              onClick={handleAddAllSuggestedTasks}
-              className="flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Add All Tasks</span>
-            </button>
-          </div>
-          
-          <div className="space-y-3">
-            {workloadBreakdown.suggested_tasks.map((suggestion, index) => (
-              <div key={index} className="bg-white p-4 rounded-lg border border-indigo-100">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex-grow">
-                    <h5 className="font-medium text-gray-900 mb-1">{suggestion.title}</h5>
-                    <p className="text-gray-600 text-sm mb-2">{suggestion.description}</p>
-                    
-                    <div className="flex items-center space-x-3 text-xs">
-                      <span className={`px-2 py-1 rounded-full ${getPriorityColor(suggestion.priority)}`}>
-                        {suggestion.priority} priority
-                      </span>
-                      <span className="text-gray-500">~{suggestion.estimated_time}</span>
-                      {suggestion.tags && suggestion.tags.length > 0 && (
-                        <div className="flex items-center space-x-1">
-                          {suggestion.tags.map(tag => (
-                            <span key={tag} className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {suggestion.subtasks && suggestion.subtasks.length > 0 && (
-                      <div className="mt-3">
-                        <p className="text-xs font-medium text-gray-700 mb-1">Suggested subtasks:</p>
-                        <ul className="text-xs text-gray-600 space-y-1">
-                          {suggestion.subtasks.map((subtask, subIndex) => (
-                            <li key={subIndex} className="flex items-start space-x-2">
-                              <span className="text-indigo-500 mt-0.5">•</span>
-                              <span>{subtask}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <button
-                    onClick={() => handleAddSuggestedTask(suggestion)}
-                    className="ml-3 px-3 py-1 bg-indigo-600 text-white text-xs rounded-md hover:bg-indigo-700 transition-colors"
-                  >
-                    Add Task
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Encouragement */}
-        <div className="bg-white/70 p-4 rounded-xl border border-purple-100">
-          <div className="flex items-start space-x-2">
-            <Sparkles className="h-4 w-4 text-purple-600 mt-0.5 flex-shrink-0" />
-            <p className="text-purple-800 text-sm italic leading-relaxed">
-              {workloadBreakdown.encouragement}
-            </p>
-          </div>
-        </div>
-      </div>
-    );
   };
 
   const renderEditForm = (task: any) => (
@@ -807,7 +593,7 @@ export const TaskManager: React.FC = () => {
         </div>
       )}
 
-      {/* Workload Breakdown Section */}
+      {/* AI Workload Breakdown Section */}
       <div className="bg-gradient-to-r from-purple-50 to-indigo-50 p-6 rounded-xl border border-purple-100">
         <div className="flex items-center space-x-3 mb-4">
           <Brain className="h-6 w-6 text-purple-600" />
@@ -818,8 +604,8 @@ export const TaskManager: React.FC = () => {
         </p>
         <div className="space-y-3">
           <textarea
-            value={brainDumpInput}
-            onChange={(e) => setBrainDumpInput(e.target.value)}
+            value={workloadInput}
+            onChange={(e) => setWorkloadInput(e.target.value)}
             placeholder="Example: 'I need to plan my wedding in 6 months. I have a $15k budget and want a small ceremony with 50 guests. I need to find a venue, photographer, caterer, and handle all the planning...' or 'I'm launching a new product and need to create a marketing campaign, build a landing page, set up analytics, and coordinate with the development team...'"
             rows={4}
             className="w-full px-4 py-3 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
@@ -830,10 +616,10 @@ export const TaskManager: React.FC = () => {
             </p>
             <button
               onClick={handleWorkloadBreakdown}
-              disabled={processingWorkload || !brainDumpInput.trim()}
+              disabled={aiLoading || !workloadInput.trim()}
               className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
             >
-              {processingWorkload ? (
+              {aiLoading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   <span>Analyzing...</span>
@@ -848,9 +634,6 @@ export const TaskManager: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Workload Breakdown Results */}
-      {workloadBreakdown && renderWorkloadBreakdown()}
 
       {/* AI Response */}
       {aiResponse && (
