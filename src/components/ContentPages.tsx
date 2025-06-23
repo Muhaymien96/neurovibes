@@ -1,5 +1,5 @@
 import React from 'react';
-import { Brain, CheckSquare, BarChart3, Calendar, Option as Notion, Zap, Shield, Heart, Mail, Phone, MapPin, Clock, Users, Star, Check, ArrowRight, Lightbulb, Target, Sparkles } from 'lucide-react';
+import { Brain, CheckSquare, BarChart3, Calendar, Zap, Shield, Heart, Mail, Phone, MapPin, Clock, Users, Star, Check, ArrowRight, Lightbulb, Target, Sparkles } from 'lucide-react';
 
 interface ContentPagesProps {
   page: 'features' | 'pricing' | 'integrations' | 'help' | 'contact' | 'privacy';
@@ -66,76 +66,6 @@ export const ContentPages: React.FC<ContentPagesProps> = ({ page }) => {
             <p className="text-gray-600">{feature.description}</p>
           </div>
         ))}
-      </div>
-
-      {/* Detailed Features */}
-      <div className="space-y-16">
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          <div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Enhanced AI Coaching</h2>
-            <p className="text-gray-600 mb-6">
-              Our AI coach powered by Google's Gemini learns from your historical data to provide deeply personalized guidance. 
-              It understands your productive hours, mood patterns, and task completion habits to offer the most relevant support.
-            </p>
-            <ul className="space-y-2">
-              <li className="flex items-center space-x-2">
-                <Check className="h-5 w-5 text-green-600" />
-                <span>Contextual coaching based on your patterns</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <Check className="h-5 w-5 text-green-600" />
-                <span>Natural voice interaction with warm TTS</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <Check className="h-5 w-5 text-green-600" />
-                <span>Personalized task breakdown strategies</span>
-              </li>
-            </ul>
-          </div>
-          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-8 rounded-2xl">
-            <Brain className="h-16 w-16 text-indigo-600 mb-4" />
-            <p className="text-indigo-800 italic">
-              "Based on your patterns, you tend to be most productive around 10 AM. 
-              Let's break this overwhelming task into 3 smaller steps that match your energy levels."
-            </p>
-          </div>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-8 rounded-2xl order-2 md:order-1">
-            <BarChart3 className="h-16 w-16 text-purple-600 mb-4" />
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-purple-700">Mood Trend</span>
-                <span className="text-sm font-semibold text-purple-800">↗ Improving</span>
-              </div>
-              <div className="w-full bg-purple-200 rounded-full h-2">
-                <div className="bg-purple-600 h-2 rounded-full w-3/4"></div>
-              </div>
-            </div>
-          </div>
-          <div className="order-1 md:order-2">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Advanced Mood Insights</h2>
-            <p className="text-gray-600 mb-6">
-              Track your mood, energy, and focus levels with beautiful trend visualizations. 
-              Our AI analyzes correlations between your mood and productivity to provide actionable insights.
-            </p>
-            <ul className="space-y-2">
-              <li className="flex items-center space-x-2">
-                <Check className="h-5 w-5 text-green-600" />
-                <span>Visual trend charts and patterns</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <Check className="h-5 w-5 text-green-600" />
-                <span>Mood-productivity correlations</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <Check className="h-5 w-5 text-green-600" />
-                <span>Personalized recommendations</span>
-              </li>
-            </ul>
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -213,10 +143,6 @@ export const ContentPages: React.FC<ContentPagesProps> = ({ page }) => {
             </li>
             <li className="flex items-center space-x-2">
               <Check className="h-5 w-5 text-green-400" />
-              <span>Smart reminders</span>
-            </li>
-            <li className="flex items-center space-x-2">
-              <Check className="h-5 w-5 text-green-400" />
               <span>Calendar integration</span>
             </li>
           </ul>
@@ -266,14 +192,14 @@ export const ContentPages: React.FC<ContentPagesProps> = ({ page }) => {
     <div className="space-y-16">
       <div className="text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-6">
-          Seamless Integrations
+          Calendar Integration
         </h1>
         <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-          Connect MindMesh with your favorite tools to create a unified productivity ecosystem.
+          Connect MindMesh with Google Calendar to create a unified productivity ecosystem.
         </p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-8">
+      <div className="max-w-2xl mx-auto">
         <div className="bg-white border border-gray-200 rounded-2xl p-8">
           <div className="flex items-center space-x-4 mb-6">
             <Calendar className="h-12 w-12 text-blue-600" />
@@ -299,53 +225,6 @@ export const ContentPages: React.FC<ContentPagesProps> = ({ page }) => {
           <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
             Connect Google Calendar
           </button>
-        </div>
-
-        <div className="bg-white border border-gray-200 rounded-2xl p-8">
-          <div className="flex items-center space-x-4 mb-6">
-            <div className="h-12 w-12 bg-gray-900 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">N</span>
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold text-gray-900">Notion</h3>
-              <p className="text-gray-600">Sync with Notion databases</p>
-            </div>
-          </div>
-          <ul className="space-y-2 mb-6">
-            <li className="flex items-center space-x-2">
-              <Check className="h-4 w-4 text-green-600" />
-              <span>Import tasks from Notion databases</span>
-            </li>
-            <li className="flex items-center space-x-2">
-              <Check className="h-4 w-4 text-green-600" />
-              <span>Sync completion status back to Notion</span>
-            </li>
-            <li className="flex items-center space-x-2">
-              <Check className="h-4 w-4 text-green-600" />
-              <span>Flexible database mapping</span>
-            </li>
-          </ul>
-          <button className="w-full bg-gray-900 text-white py-2 rounded-lg hover:bg-gray-800 transition-colors">
-            Connect Notion
-          </button>
-        </div>
-      </div>
-
-      <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">More Integrations Coming Soon</h2>
-        <div className="flex justify-center space-x-8 opacity-50">
-          <div className="text-center">
-            <div className="w-16 h-16 bg-gray-200 rounded-lg mb-2"></div>
-            <span className="text-sm text-gray-600">Todoist</span>
-          </div>
-          <div className="text-center">
-            <div className="w-16 h-16 bg-gray-200 rounded-lg mb-2"></div>
-            <span className="text-sm text-gray-600">Slack</span>
-          </div>
-          <div className="text-center">
-            <div className="w-16 h-16 bg-gray-200 rounded-lg mb-2"></div>
-            <span className="text-sm text-gray-600">Trello</span>
-          </div>
         </div>
       </div>
     </div>
@@ -383,9 +262,9 @@ export const ContentPages: React.FC<ContentPagesProps> = ({ page }) => {
             articles: ["Daily mood logging", "Reading mood trends", "Mood-productivity insights"]
           },
           {
-            title: "Integrations",
-            description: "Connect with your favorite productivity tools",
-            articles: ["Setting up Google Calendar", "Connecting Notion", "Sync troubleshooting"]
+            title: "Calendar Integration",
+            description: "Connect with Google Calendar",
+            articles: ["Setting up Google Calendar", "Sync troubleshooting", "Managing sync rules"]
           },
           {
             title: "Troubleshooting",
@@ -618,7 +497,7 @@ export const ContentPages: React.FC<ContentPagesProps> = ({ page }) => {
             <li><strong>Google Gemini AI:</strong> For AI coaching responses (data processed securely)</li>
             <li><strong>ElevenLabs:</strong> For text-to-speech functionality</li>
             <li><strong>Supabase:</strong> For secure data storage and authentication</li>
-            <li><strong>Integration Partners:</strong> Google Calendar, Notion (only with your explicit consent)</li>
+            <li><strong>Google Calendar:</strong> For calendar integration (only with your explicit consent)</li>
           </ul>
         </section>
 

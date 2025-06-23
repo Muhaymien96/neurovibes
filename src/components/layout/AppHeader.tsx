@@ -97,25 +97,12 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                   Mood
                 </button>
                 <button
-                  onClick={() => setActiveTab?.('reminders')}
-                  className={`transition-colors font-medium relative ${
-                    activeTab === 'reminders' ? 'text-indigo-600' : 'text-gray-600 hover:text-indigo-600'
-                  }`}
-                >
-                  Reminders
-                  {reminders.length > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                      {reminders.length}
-                    </span>
-                  )}
-                </button>
-                <button
                   onClick={() => setActiveTab?.('integrations')}
                   className={`transition-colors font-medium ${
                     activeTab === 'integrations' ? 'text-indigo-600' : 'text-gray-600 hover:text-indigo-600'
                   }`}
                 >
-                  Integrations
+                  Calendar
                 </button>
                 <div className="flex items-center space-x-3">
                   <button
@@ -161,12 +148,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                       className="text-gray-600 hover:text-indigo-600 transition-colors font-medium"
                     >
                       Pricing
-                    </button>
-                    <button
-                      onClick={() => onPageNavigation?.('integrations')}
-                      className="text-gray-600 hover:text-indigo-600 transition-colors font-medium"
-                    >
-                      Integrations
                     </button>
                     <button
                       onClick={() => onAuthModal?.('signin')}

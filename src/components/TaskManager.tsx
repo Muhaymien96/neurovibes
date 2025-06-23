@@ -77,7 +77,6 @@ export const TaskManager: React.FC = () => {
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Get AI coaching response first
     const coachingResponse = await getCoachingResponse({
       input: `${newTask.title}. ${newTask.description}`,
       type: 'task',
@@ -121,15 +120,14 @@ export const TaskManager: React.FC = () => {
   const handleWorkloadBreakdown = async () => {
     if (!workloadInput.trim()) return;
     
-    // Use the existing AI coach system with a special workload breakdown type
     const response = await getCoachingResponse({
       input: workloadInput,
-      type: 'brain_dump', // Use brain_dump type for workload analysis
+      type: 'brain_dump',
       context: {
         existing_tasks: tasks.map(t => ({ title: t.title, priority: t.priority, status: t.status })),
         user_id: user?.id,
         include_historical_data: true,
-        workload_breakdown: true, // Special flag for workload breakdown
+        workload_breakdown: true,
       }
     });
 
@@ -140,15 +138,14 @@ export const TaskManager: React.FC = () => {
   };
 
   const handleTaskAdd = async (taskSuggestion: TaskSuggestion) => {
-    console.log('Adding task:', taskSuggestion);
-    
     try {
-      // Convert TaskSuggestion to our task format
+      console.log('Adding task from suggestion:', taskSuggestion);
+      
       const taskData = {
         title: taskSuggestion.title,
         description: taskSuggestion.description,
         priority: taskSuggestion.priority,
-        due_date: '', // Could be enhanced to parse estimated_time into a due date
+        due_date: '',
         parent_task_id: undefined,
         recurrence_pattern: undefined,
         recurrence_end_date: undefined,
@@ -180,7 +177,6 @@ export const TaskManager: React.FC = () => {
           }
         }
         
-        // Show success feedback
         console.log('Task and subtasks created successfully');
       } else {
         console.error('Failed to create task');
@@ -199,10 +195,8 @@ export const TaskManager: React.FC = () => {
     }
 
     try {
-      // Add each task sequentially to avoid overwhelming the system
       for (const task of tasks) {
         await handleTaskAdd(task);
-        // Small delay between tasks to prevent rate limiting
         await new Promise(resolve => setTimeout(resolve, 100));
       }
       
@@ -266,7 +260,6 @@ export const TaskManager: React.FC = () => {
     
     await updateTask(id, updates);
     
-    // Handle recurring tasks
     const task = getTaskById(id);
     if (status === 'completed' && task?.recurrence_pattern) {
       await createRecurringTask(task);
@@ -294,10 +287,9 @@ export const TaskManager: React.FC = () => {
         break;
     }
     
-    // Check if we should create the next instance
     const endDate = completedTask.recurrence_end_date ? new Date(completedTask.recurrence_end_date) : null;
     if (endDate && nextDueDate > endDate) {
-      return; // Don't create if past end date
+      return;
     }
     
     await createTask({
@@ -623,11 +615,9 @@ export const TaskManager: React.FC = () => {
           </div>
         </div>
 
-        {/* Edit Form */}
         {editingTask === task.id && renderEditForm(task)}
       </div>
       
-      {/* Render subtasks */}
       {task.isExpanded && task.subtasks && task.subtasks.length > 0 && (
         <div className="mt-2 space-y-2">
           {task.subtasks.map((subtask: any) => renderTask(subtask, level + 1))}
@@ -636,7 +626,6 @@ export const TaskManager: React.FC = () => {
     </div>
   );
 
-  // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (showTaskMenu) {
@@ -686,20 +675,17 @@ export const TaskManager: React.FC = () => {
           <h4 className="text-lg font-semibold text-purple-900">AI Workload Breakdown</h4>
         </div>
         <p className="text-purple-700 mb-4 text-sm">
-          Describe your workload, project, or what you need to accomplish. AI will analyze it and break it down into manageable, actionable tasks with priorities and time estimates.
+          Describe your workload and AI will break it down into manageable tasks.
         </p>
         <div className="space-y-3">
           <textarea
             value={workloadInput}
             onChange={(e) => setWorkloadInput(e.target.value)}
-            placeholder="Example: 'I need to plan my wedding in 6 months. I have a $15k budget and want a small ceremony with 50 guests. I need to find a venue, photographer, caterer, and handle all the planning...' or 'I'm launching a new product and need to create a marketing campaign, build a landing page, set up analytics, and coordinate with the development team...'"
+            placeholder="Example: 'I need to plan my wedding in 6 months with a $15k budget...'"
             rows={4}
             className="w-full px-4 py-3 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
           />
-          <div className="flex justify-between items-center">
-            <p className="text-xs text-purple-600">
-              💡 Be specific about deadlines, constraints, and goals for better task breakdown
-            </p>
+          <div className="flex justify-end">
             <button
               onClick={handleWorkloadBreakdown}
               disabled={aiLoading || !workloadInput.trim()}
@@ -713,7 +699,7 @@ export const TaskManager: React.FC = () => {
               ) : (
                 <>
                   <Lightbulb className="h-4 w-4" />
-                  <span>Break Down Workload</span>
+                  <span>Break Down</span>
                 </>
               )}
             </button>

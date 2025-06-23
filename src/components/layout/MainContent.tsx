@@ -4,7 +4,6 @@ import { FocusMode } from '../sections/FocusMode';
 import { BrainDump } from '../BrainDump';
 import { TaskManager } from '../TaskManager';
 import { MoodTracker } from '../MoodTracker';
-import { SmartReminders } from '../SmartReminders';
 import { IntegrationsManager } from '../IntegrationsManager';
 import { ProfileSettings } from '../ProfileSettings';
 
@@ -23,7 +22,6 @@ export const MainContent: React.FC<MainContentProps> = ({ activeTab, user }) => 
         {activeTab === 'braindump' && <BrainDump />}
         {activeTab === 'tasks' && <TaskManager />}
         {activeTab === 'mood' && <MoodTracker />}
-        {activeTab === 'reminders' && <SmartReminders />}
         {activeTab === 'integrations' && <IntegrationsManager />}
         {activeTab === 'profile' && <ProfileSettings />}
       </div>
