@@ -14,10 +14,11 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
 interface AuthRequest {
-  action: 'get_auth_url' | 'exchange_code' | 'refresh_token';
+  action: 'get_auth_url' | 'exchange_code' | 'refresh_token' | 'store_oauth_tokens';
   code?: string;
   user_id?: string;
   refresh_token?: string;
+  access_token?: string;
 }
 
 serve(async (req) => {
@@ -26,7 +27,7 @@ serve(async (req) => {
   }
 
   try {
-    const { action, code, user_id, refresh_token }: AuthRequest = await req.json()
+    const { action, code, user_id, refresh_token, access_token }: AuthRequest = await req.json()
 
     if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
       return new Response(
@@ -53,6 +54,58 @@ serve(async (req) => {
 
         return new Response(
           JSON.stringify({ auth_url: authUrl.toString() }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      case 'store_oauth_tokens': {
+        if (!access_token || !user_id) {
+          return new Response(
+            JSON.stringify({ error: 'access_token and user_id are required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        // Calculate expiry (Google tokens typically last 1 hour)
+        const expiresAt = new Date(Date.now() + 3600 * 1000);
+
+        // Store integration in database
+        const { data, error } = await supabase
+          .from('user_integrations')
+          .upsert({
+            user_id,
+            integration_type: 'google_calendar',
+            access_token,
+            refresh_token,
+            expires_at: expiresAt.toISOString(),
+            is_active: true,
+            integration_data: {
+              scope: 'calendar',
+              provider: 'google_oauth',
+            },
+            sync_rules: {
+              import_enabled: true,
+              export_enabled: true,
+              import_filters: {},
+              export_filters: {},
+            }
+          }, {
+            onConflict: 'user_id,integration_type',
+            ignoreDuplicates: false
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Database error:', error);
+          return new Response(
+            JSON.stringify({ error: 'Failed to store integration' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        return new Response(
+          JSON.stringify({ success: true, integration: data }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
@@ -103,6 +156,12 @@ serve(async (req) => {
             integration_data: {
               scope: tokens.scope,
               token_type: tokens.token_type,
+            },
+            sync_rules: {
+              import_enabled: true,
+              export_enabled: true,
+              import_filters: {},
+              export_filters: {},
             }
           }, {
             onConflict: 'user_id,integration_type',
