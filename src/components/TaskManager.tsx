@@ -140,32 +140,75 @@ export const TaskManager: React.FC = () => {
   };
 
   const handleTaskAdd = async (taskSuggestion: TaskSuggestion) => {
-    // Convert TaskSuggestion to our task format
-    const taskData = {
-      title: taskSuggestion.title,
-      description: taskSuggestion.description,
-      priority: taskSuggestion.priority,
-      due_date: '', // Could be enhanced to parse estimated_time into a due date
-      parent_task_id: undefined,
-      recurrence_pattern: undefined,
-      recurrence_end_date: undefined,
-      tags: taskSuggestion.tags || [],
-    };
-
-    const createdTask = await createTask(taskData);
+    console.log('Adding task:', taskSuggestion);
     
-    if (createdTask && taskSuggestion.subtasks && taskSuggestion.subtasks.length > 0) {
-      // Create subtasks
-      for (const subtaskTitle of taskSuggestion.subtasks) {
-        await createTask({
-          title: subtaskTitle,
-          description: `Subtask of: ${taskSuggestion.title}`,
-          priority: 'medium',
-          due_date: '',
-          parent_task_id: createdTask.id,
-          tags: ['subtask'],
-        });
+    try {
+      // Convert TaskSuggestion to our task format
+      const taskData = {
+        title: taskSuggestion.title,
+        description: taskSuggestion.description,
+        priority: taskSuggestion.priority,
+        due_date: '', // Could be enhanced to parse estimated_time into a due date
+        parent_task_id: undefined,
+        recurrence_pattern: undefined,
+        recurrence_end_date: undefined,
+        tags: taskSuggestion.tags || [],
+      };
+
+      console.log('Creating task with data:', taskData);
+      const createdTask = await createTask(taskData);
+      
+      if (createdTask) {
+        console.log('Task created successfully:', createdTask);
+        
+        // Create subtasks if they exist
+        if (taskSuggestion.subtasks && taskSuggestion.subtasks.length > 0) {
+          console.log('Creating subtasks:', taskSuggestion.subtasks);
+          
+          for (const subtaskTitle of taskSuggestion.subtasks) {
+            const subtaskData = {
+              title: subtaskTitle,
+              description: `Subtask of: ${taskSuggestion.title}`,
+              priority: 'medium' as Task['priority'],
+              due_date: '',
+              parent_task_id: createdTask.id,
+              tags: ['subtask'],
+            };
+            
+            console.log('Creating subtask:', subtaskData);
+            await createTask(subtaskData);
+          }
+        }
+        
+        // Show success feedback
+        console.log('Task and subtasks created successfully');
+      } else {
+        console.error('Failed to create task');
       }
+    } catch (error) {
+      console.error('Error in handleTaskAdd:', error);
+    }
+  };
+
+  const handleAddAllTasks = async (tasks: TaskSuggestion[]) => {
+    console.log('Adding all tasks:', tasks);
+    
+    if (!tasks || tasks.length === 0) {
+      console.warn('No tasks to add');
+      return;
+    }
+
+    try {
+      // Add each task sequentially to avoid overwhelming the system
+      for (const task of tasks) {
+        await handleTaskAdd(task);
+        // Small delay between tasks to prevent rate limiting
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      console.log('All tasks added successfully');
+    } catch (error) {
+      console.error('Error adding all tasks:', error);
     }
   };
 
@@ -202,13 +245,17 @@ export const TaskManager: React.FC = () => {
   };
 
   const handleSubtaskAdd = async (subtaskTitle: string, parentId?: string) => {
-    await createTask({
+    console.log('Adding subtask:', subtaskTitle, 'to parent:', parentId);
+    
+    const subtaskData = {
       title: subtaskTitle,
       description: 'Generated from AI coaching',
-      priority: 'medium',
+      priority: 'medium' as Task['priority'],
       due_date: '',
       parent_task_id: parentId,
-    });
+    };
+    
+    await createTask(subtaskData);
   };
 
   const handleUpdateTaskStatus = async (id: string, status: Task['status']) => {
@@ -680,6 +727,7 @@ export const TaskManager: React.FC = () => {
           response={aiResponse} 
           onSubtaskAdd={(subtask) => handleSubtaskAdd(subtask)}
           onTaskAdd={handleTaskAdd}
+          onAddAllTasks={handleAddAllTasks}
         />
       )}
 

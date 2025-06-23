@@ -27,16 +27,19 @@ interface AICoachResponseProps {
   };
   onSubtaskAdd?: (subtask: string) => void;
   onTaskAdd?: (task: TaskSuggestion) => void;
+  onAddAllTasks?: (tasks: TaskSuggestion[]) => void;
 }
 
 export const AICoachResponse: React.FC<AICoachResponseProps> = ({ 
   response, 
   onSubtaskAdd,
-  onTaskAdd
+  onTaskAdd,
+  onAddAllTasks
 }) => {
   const { speak, stop, isSpeaking, loading } = useElevenLabsTTS();
   const [editingTask, setEditingTask] = useState<number | null>(null);
   const [editedTasks, setEditedTasks] = useState<TaskSuggestion[]>(response.suggested_tasks || []);
+  const [addingTasks, setAddingTasks] = useState(false);
 
   const handleSpeakResponse = () => {
     if (isSpeaking) {
@@ -60,9 +63,30 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
     }
   };
 
-  const handleAddAllTasks = () => {
-    if (editedTasks && onTaskAdd) {
-      editedTasks.forEach(task => onTaskAdd(task));
+  const handleAddAllTasks = async () => {
+    if (!editedTasks || editedTasks.length === 0 || !onAddAllTasks) return;
+    
+    setAddingTasks(true);
+    try {
+      console.log('Adding all tasks from AICoachResponse:', editedTasks);
+      await onAddAllTasks(editedTasks);
+      console.log('All tasks added successfully');
+    } catch (error) {
+      console.error('Error adding all tasks:', error);
+    } finally {
+      setAddingTasks(false);
+    }
+  };
+
+  const handleAddSingleTask = async (task: TaskSuggestion) => {
+    if (!onTaskAdd) return;
+    
+    console.log('Adding single task from AICoachResponse:', task);
+    try {
+      await onTaskAdd(task);
+      console.log('Single task added successfully');
+    } catch (error) {
+      console.error('Error adding single task:', error);
     }
   };
 
@@ -403,13 +427,23 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
             <h4 className="font-medium text-indigo-900">Suggested Tasks</h4>
-            {onTaskAdd && (
+            {onAddAllTasks && (
               <button
                 onClick={handleAddAllTasks}
-                className="flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm"
+                disabled={addingTasks}
+                className="flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Plus className="h-4 w-4" />
-                <span>Add All Tasks</span>
+                {addingTasks ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Adding Tasks...</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4" />
+                    <span>Add All Tasks</span>
+                  </>
+                )}
               </button>
             )}
           </div>
@@ -468,7 +502,7 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
                         
                         {onTaskAdd && (
                           <button
-                            onClick={() => onTaskAdd(task)}
+                            onClick={() => handleAddSingleTask(task)}
                             className="px-3 py-1 bg-indigo-600 text-white text-xs rounded-md hover:bg-indigo-700 transition-colors"
                           >
                             Add Task
