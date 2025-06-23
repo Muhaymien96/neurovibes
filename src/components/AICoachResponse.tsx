@@ -26,8 +26,8 @@ interface AICoachResponseProps {
     recommended_strategies?: string[];
   };
   onSubtaskAdd?: (subtask: string) => void;
-  onTaskAdd?: (task: TaskSuggestion) => void;
-  onAddAllTasks?: (tasks: TaskSuggestion[]) => void;
+  onTaskAdd?: (task: TaskSuggestion) => Promise<void>;
+  onAddAllTasks?: (tasks: TaskSuggestion[]) => Promise<void>;
 }
 
 export const AICoachResponse: React.FC<AICoachResponseProps> = ({ 
@@ -40,6 +40,14 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
   const [editingTask, setEditingTask] = useState<number | null>(null);
   const [editedTasks, setEditedTasks] = useState<TaskSuggestion[]>(response.suggested_tasks || []);
   const [addingTasks, setAddingTasks] = useState(false);
+  const [addingTaskIndex, setAddingTaskIndex] = useState<number | null>(null);
+
+  // Initialize editedTasks when response changes
+  React.useEffect(() => {
+    if (response.suggested_tasks) {
+      setEditedTasks(response.suggested_tasks);
+    }
+  }, [response.suggested_tasks]);
 
   const handleSpeakResponse = () => {
     if (isSpeaking) {
@@ -78,39 +86,46 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
     }
   };
 
-  const handleAddSingleTask = async (task: TaskSuggestion) => {
+  const handleAddSingleTask = async (task: TaskSuggestion, index: number) => {
     if (!onTaskAdd) return;
     
+    setAddingTaskIndex(index);
     console.log('Adding single task from AICoachResponse:', task);
     try {
       await onTaskAdd(task);
       console.log('Single task added successfully');
     } catch (error) {
       console.error('Error adding single task:', error);
+    } finally {
+      setAddingTaskIndex(null);
     }
   };
 
   const handleEditTask = (index: number) => {
+    console.log('Starting edit for task index:', index);
     setEditingTask(index);
   };
 
   const handleSaveEdit = (index: number) => {
+    console.log('Saving edit for task index:', index);
     setEditingTask(null);
     // The edited task is already updated in editedTasks state
   };
 
   const handleCancelEdit = (index: number) => {
+    console.log('Canceling edit for task index:', index);
     // Reset to original task
     const originalTask = response.suggested_tasks?.[index];
     if (originalTask) {
       const newEditedTasks = [...editedTasks];
-      newEditedTasks[index] = originalTask;
+      newEditedTasks[index] = { ...originalTask };
       setEditedTasks(newEditedTasks);
     }
     setEditingTask(null);
   };
 
   const updateEditedTask = (index: number, field: keyof TaskSuggestion, value: any) => {
+    console.log('Updating task field:', { index, field, value });
     const newEditedTasks = [...editedTasks];
     newEditedTasks[index] = { ...newEditedTasks[index], [field]: value };
     setEditedTasks(newEditedTasks);
@@ -119,6 +134,7 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
   const addSubtaskToEdit = (taskIndex: number, subtask: string) => {
     if (!subtask.trim()) return;
     
+    console.log('Adding subtask to task:', { taskIndex, subtask });
     const newEditedTasks = [...editedTasks];
     const currentSubtasks = newEditedTasks[taskIndex].subtasks || [];
     newEditedTasks[taskIndex] = {
@@ -129,6 +145,7 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
   };
 
   const removeSubtaskFromEdit = (taskIndex: number, subtaskIndex: number) => {
+    console.log('Removing subtask:', { taskIndex, subtaskIndex });
     const newEditedTasks = [...editedTasks];
     const currentSubtasks = newEditedTasks[taskIndex].subtasks || [];
     newEditedTasks[taskIndex] = {
@@ -141,6 +158,7 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
   const addTagToEdit = (taskIndex: number, tag: string) => {
     if (!tag.trim()) return;
     
+    console.log('Adding tag to task:', { taskIndex, tag });
     const newEditedTasks = [...editedTasks];
     const currentTags = newEditedTasks[taskIndex].tags || [];
     if (!currentTags.includes(tag.trim())) {
@@ -153,6 +171,7 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
   };
 
   const removeTagFromEdit = (taskIndex: number, tagIndex: number) => {
+    console.log('Removing tag:', { taskIndex, tagIndex });
     const newEditedTasks = [...editedTasks];
     const currentTags = newEditedTasks[taskIndex].tags || [];
     newEditedTasks[taskIndex] = {
@@ -170,7 +189,7 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
     const [newTag, setNewTag] = useState('');
 
     return (
-      <div className="space-y-4 p-4 bg-gray-50 rounded-lg border">
+      <div className="space-y-4 p-4 bg-gray-50 rounded-lg border mt-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
           <input
@@ -226,6 +245,7 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
                   {subtask}
                 </span>
                 <button
+                  type="button"
                   onClick={() => removeSubtaskFromEdit(index, subtaskIndex)}
                   className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
                 >
@@ -240,6 +260,7 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
                 onChange={(e) => setNewSubtask(e.target.value)}
                 onKeyPress={(e) => {
                   if (e.key === 'Enter') {
+                    e.preventDefault();
                     addSubtaskToEdit(index, newSubtask);
                     setNewSubtask('');
                   }
@@ -248,6 +269,7 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
                 className="flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
               <button
+                type="button"
                 onClick={() => {
                   addSubtaskToEdit(index, newSubtask);
                   setNewSubtask('');
@@ -272,6 +294,7 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
                   >
                     <span>{tag}</span>
                     <button
+                      type="button"
                       onClick={() => removeTagFromEdit(index, tagIndex)}
                       className="text-indigo-600 hover:text-indigo-800"
                     >
@@ -288,6 +311,7 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
                 onChange={(e) => setNewTag(e.target.value)}
                 onKeyPress={(e) => {
                   if (e.key === 'Enter') {
+                    e.preventDefault();
                     addTagToEdit(index, newTag);
                     setNewTag('');
                   }
@@ -296,6 +320,7 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
                 className="flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
               <button
+                type="button"
                 onClick={() => {
                   addTagToEdit(index, newTag);
                   setNewTag('');
@@ -310,6 +335,7 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
 
         <div className="flex space-x-3">
           <button
+            type="button"
             onClick={() => handleSaveEdit(index)}
             className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
           >
@@ -317,6 +343,7 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
             <span>Save</span>
           </button>
           <button
+            type="button"
             onClick={() => handleCancelEdit(index)}
             className="flex items-center space-x-2 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
           >
@@ -502,10 +529,18 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
                         
                         {onTaskAdd && (
                           <button
-                            onClick={() => handleAddSingleTask(task)}
-                            className="px-3 py-1 bg-indigo-600 text-white text-xs rounded-md hover:bg-indigo-700 transition-colors"
+                            onClick={() => handleAddSingleTask(task, index)}
+                            disabled={addingTaskIndex === index}
+                            className="px-3 py-1 bg-indigo-600 text-white text-xs rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            Add Task
+                            {addingTaskIndex === index ? (
+                              <div className="flex items-center space-x-1">
+                                <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+                                <span>Adding...</span>
+                              </div>
+                            ) : (
+                              'Add Task'
+                            )}
                           </button>
                         )}
                       </div>
