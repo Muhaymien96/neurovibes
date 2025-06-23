@@ -1,5 +1,5 @@
-import React from 'react';
-import { Brain, Volume2, VolumeX, Sparkles, CheckCircle, Clock, Plus, Target, Lightbulb } from 'lucide-react';
+import React, { useState } from 'react';
+import { Brain, Volume2, VolumeX, Sparkles, CheckCircle, Clock, Plus, Target, Lightbulb, Edit3, Save, X } from 'lucide-react';
 import { useElevenLabsTTS } from '../hooks/useElevenLabsTTS';
 
 interface TaskSuggestion {
@@ -35,6 +35,8 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
   onTaskAdd
 }) => {
   const { speak, stop, isSpeaking, loading } = useElevenLabsTTS();
+  const [editingTask, setEditingTask] = useState<number | null>(null);
+  const [editedTasks, setEditedTasks] = useState<TaskSuggestion[]>(response.suggested_tasks || []);
 
   const handleSpeakResponse = () => {
     if (isSpeaking) {
@@ -59,13 +61,248 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
   };
 
   const handleAddAllTasks = () => {
-    if (response.suggested_tasks && onTaskAdd) {
-      response.suggested_tasks.forEach(task => onTaskAdd(task));
+    if (editedTasks && onTaskAdd) {
+      editedTasks.forEach(task => onTaskAdd(task));
     }
   };
 
+  const handleEditTask = (index: number) => {
+    setEditingTask(index);
+  };
+
+  const handleSaveEdit = (index: number) => {
+    setEditingTask(null);
+    // The edited task is already updated in editedTasks state
+  };
+
+  const handleCancelEdit = (index: number) => {
+    // Reset to original task
+    const originalTask = response.suggested_tasks?.[index];
+    if (originalTask) {
+      const newEditedTasks = [...editedTasks];
+      newEditedTasks[index] = originalTask;
+      setEditedTasks(newEditedTasks);
+    }
+    setEditingTask(null);
+  };
+
+  const updateEditedTask = (index: number, field: keyof TaskSuggestion, value: any) => {
+    const newEditedTasks = [...editedTasks];
+    newEditedTasks[index] = { ...newEditedTasks[index], [field]: value };
+    setEditedTasks(newEditedTasks);
+  };
+
+  const addSubtaskToEdit = (taskIndex: number, subtask: string) => {
+    if (!subtask.trim()) return;
+    
+    const newEditedTasks = [...editedTasks];
+    const currentSubtasks = newEditedTasks[taskIndex].subtasks || [];
+    newEditedTasks[taskIndex] = {
+      ...newEditedTasks[taskIndex],
+      subtasks: [...currentSubtasks, subtask.trim()]
+    };
+    setEditedTasks(newEditedTasks);
+  };
+
+  const removeSubtaskFromEdit = (taskIndex: number, subtaskIndex: number) => {
+    const newEditedTasks = [...editedTasks];
+    const currentSubtasks = newEditedTasks[taskIndex].subtasks || [];
+    newEditedTasks[taskIndex] = {
+      ...newEditedTasks[taskIndex],
+      subtasks: currentSubtasks.filter((_, index) => index !== subtaskIndex)
+    };
+    setEditedTasks(newEditedTasks);
+  };
+
+  const addTagToEdit = (taskIndex: number, tag: string) => {
+    if (!tag.trim()) return;
+    
+    const newEditedTasks = [...editedTasks];
+    const currentTags = newEditedTasks[taskIndex].tags || [];
+    if (!currentTags.includes(tag.trim())) {
+      newEditedTasks[taskIndex] = {
+        ...newEditedTasks[taskIndex],
+        tags: [...currentTags, tag.trim()]
+      };
+      setEditedTasks(newEditedTasks);
+    }
+  };
+
+  const removeTagFromEdit = (taskIndex: number, tagIndex: number) => {
+    const newEditedTasks = [...editedTasks];
+    const currentTags = newEditedTasks[taskIndex].tags || [];
+    newEditedTasks[taskIndex] = {
+      ...newEditedTasks[taskIndex],
+      tags: currentTags.filter((_, index) => index !== tagIndex)
+    };
+    setEditedTasks(newEditedTasks);
+  };
+
   // Check if this is a workload breakdown response
-  const isWorkloadBreakdown = response.suggested_tasks && response.suggested_tasks.length > 0;
+  const isWorkloadBreakdown = editedTasks && editedTasks.length > 0;
+
+  const renderTaskEditForm = (task: TaskSuggestion, index: number) => {
+    const [newSubtask, setNewSubtask] = useState('');
+    const [newTag, setNewTag] = useState('');
+
+    return (
+      <div className="space-y-4 p-4 bg-gray-50 rounded-lg border">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+          <input
+            type="text"
+            value={task.title}
+            onChange={(e) => updateEditedTask(index, 'title', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <textarea
+            value={task.description}
+            onChange={(e) => updateEditedTask(index, 'description', e.target.value)}
+            rows={3}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+            <select
+              value={task.priority}
+              onChange={(e) => updateEditedTask(index, 'priority', e.target.value as TaskSuggestion['priority'])}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Estimated Time</label>
+            <input
+              type="text"
+              value={task.estimated_time}
+              onChange={(e) => updateEditedTask(index, 'estimated_time', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="e.g., 2 hours, 30 minutes"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Subtasks</label>
+          <div className="space-y-2">
+            {task.subtasks?.map((subtask, subtaskIndex) => (
+              <div key={subtaskIndex} className="flex items-center space-x-2">
+                <span className="flex-grow text-sm bg-white px-3 py-2 border border-gray-300 rounded-lg">
+                  {subtask}
+                </span>
+                <button
+                  onClick={() => removeSubtaskFromEdit(index, subtaskIndex)}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+            <div className="flex space-x-2">
+              <input
+                type="text"
+                value={newSubtask}
+                onChange={(e) => setNewSubtask(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    addSubtaskToEdit(index, newSubtask);
+                    setNewSubtask('');
+                  }
+                }}
+                placeholder="Add a subtask..."
+                className="flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+              <button
+                onClick={() => {
+                  addSubtaskToEdit(index, newSubtask);
+                  setNewSubtask('');
+                }}
+                className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
+          <div className="space-y-2">
+            {task.tags && task.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {task.tags.map((tag, tagIndex) => (
+                  <span
+                    key={tagIndex}
+                    className="flex items-center space-x-1 px-2 py-1 bg-indigo-100 text-indigo-800 text-sm rounded-full"
+                  >
+                    <span>{tag}</span>
+                    <button
+                      onClick={() => removeTagFromEdit(index, tagIndex)}
+                      className="text-indigo-600 hover:text-indigo-800"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="flex space-x-2">
+              <input
+                type="text"
+                value={newTag}
+                onChange={(e) => setNewTag(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    addTagToEdit(index, newTag);
+                    setNewTag('');
+                  }
+                }}
+                placeholder="Add a tag..."
+                className="flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+              <button
+                onClick={() => {
+                  addTagToEdit(index, newTag);
+                  setNewTag('');
+                }}
+                className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex space-x-3">
+          <button
+            onClick={() => handleSaveEdit(index)}
+            className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <Save className="h-4 w-4" />
+            <span>Save</span>
+          </button>
+          <button
+            onClick={() => handleCancelEdit(index)}
+            className="flex items-center space-x-2 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+          >
+            <X className="h-4 w-4" />
+            <span>Cancel</span>
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-6 rounded-2xl border border-indigo-100 shadow-sm">
@@ -144,7 +381,7 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
             )}
             <span className="flex items-center space-x-1 text-indigo-700">
               <Target className="h-4 w-4" />
-              <span>{response.suggested_tasks?.length || 0} tasks suggested</span>
+              <span>{editedTasks?.length || 0} tasks suggested</span>
             </span>
           </div>
         )}
@@ -162,7 +399,7 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
       )}
 
       {/* Suggested Tasks for workload breakdown */}
-      {isWorkloadBreakdown && response.suggested_tasks && response.suggested_tasks.length > 0 && (
+      {isWorkloadBreakdown && editedTasks && editedTasks.length > 0 && (
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
             <h4 className="font-medium text-indigo-900">Suggested Tasks</h4>
@@ -177,54 +414,70 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
             )}
           </div>
           
-          <div className="space-y-3">
-            {response.suggested_tasks.map((task, index) => (
+          <div className="space-y-4">
+            {editedTasks.map((task, index) => (
               <div key={index} className="bg-white p-4 rounded-lg border border-indigo-100">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex-grow">
-                    <h5 className="font-medium text-gray-900 mb-1">{task.title}</h5>
-                    <p className="text-gray-600 text-sm mb-2">{task.description}</p>
-                    
-                    <div className="flex items-center space-x-3 text-xs">
-                      <span className={`px-2 py-1 rounded-full ${getPriorityColor(task.priority)}`}>
-                        {task.priority} priority
-                      </span>
-                      <span className="text-gray-500">~{task.estimated_time}</span>
-                      {task.tags && task.tags.length > 0 && (
-                        <div className="flex items-center space-x-1">
-                          {task.tags.map(tag => (
-                            <span key={tag} className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
-                              {tag}
-                            </span>
-                          ))}
+                {editingTask === index ? (
+                  renderTaskEditForm(task, index)
+                ) : (
+                  <>
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-grow">
+                        <h5 className="font-medium text-gray-900 mb-1">{task.title}</h5>
+                        <p className="text-gray-600 text-sm mb-2">{task.description}</p>
+                        
+                        <div className="flex items-center space-x-3 text-xs mb-3">
+                          <span className={`px-2 py-1 rounded-full ${getPriorityColor(task.priority)}`}>
+                            {task.priority} priority
+                          </span>
+                          <span className="text-gray-500">~{task.estimated_time}</span>
+                          {task.tags && task.tags.length > 0 && (
+                            <div className="flex items-center space-x-1">
+                              {task.tags.map(tag => (
+                                <span key={tag} className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
 
-                    {task.subtasks && task.subtasks.length > 0 && (
-                      <div className="mt-3">
-                        <p className="text-xs font-medium text-gray-700 mb-1">Suggested subtasks:</p>
-                        <ul className="text-xs text-gray-600 space-y-1">
-                          {task.subtasks.map((subtask, subIndex) => (
-                            <li key={subIndex} className="flex items-start space-x-2">
-                              <span className="text-indigo-500 mt-0.5">•</span>
-                              <span>{subtask}</span>
-                            </li>
-                          ))}
-                        </ul>
+                        {task.subtasks && task.subtasks.length > 0 && (
+                          <div className="mt-3">
+                            <p className="text-xs font-medium text-gray-700 mb-1">Subtasks:</p>
+                            <ul className="text-xs text-gray-600 space-y-1">
+                              {task.subtasks.map((subtask, subIndex) => (
+                                <li key={subIndex} className="flex items-start space-x-2">
+                                  <span className="text-indigo-500 mt-0.5">•</span>
+                                  <span>{subtask}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  
-                  {onTaskAdd && (
-                    <button
-                      onClick={() => onTaskAdd(task)}
-                      className="ml-3 px-3 py-1 bg-indigo-600 text-white text-xs rounded-md hover:bg-indigo-700 transition-colors"
-                    >
-                      Add Task
-                    </button>
-                  )}
-                </div>
+                      
+                      <div className="flex items-center space-x-2 ml-3">
+                        <button
+                          onClick={() => handleEditTask(index)}
+                          className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                          title="Edit task"
+                        >
+                          <Edit3 className="h-4 w-4" />
+                        </button>
+                        
+                        {onTaskAdd && (
+                          <button
+                            onClick={() => onTaskAdd(task)}
+                            className="px-3 py-1 bg-indigo-600 text-white text-xs rounded-md hover:bg-indigo-700 transition-colors"
+                          >
+                            Add Task
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             ))}
           </div>

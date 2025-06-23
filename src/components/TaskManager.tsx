@@ -25,6 +25,15 @@ import { useAICoach } from '../hooks/useAICoach';
 import { AICoachResponse } from './AICoachResponse';
 import { Task } from '../lib/supabase';
 
+interface TaskSuggestion {
+  title: string;
+  description: string;
+  priority: 'low' | 'medium' | 'high';
+  estimated_time: string;
+  subtasks?: string[];
+  tags?: string[];
+}
+
 export const TaskManager: React.FC = () => {
   const { user } = useAuthStore();
   const {
@@ -127,6 +136,36 @@ export const TaskManager: React.FC = () => {
     if (response) {
       setAiResponse(response);
       setWorkloadInput('');
+    }
+  };
+
+  const handleTaskAdd = async (taskSuggestion: TaskSuggestion) => {
+    // Convert TaskSuggestion to our task format
+    const taskData = {
+      title: taskSuggestion.title,
+      description: taskSuggestion.description,
+      priority: taskSuggestion.priority,
+      due_date: '', // Could be enhanced to parse estimated_time into a due date
+      parent_task_id: undefined,
+      recurrence_pattern: undefined,
+      recurrence_end_date: undefined,
+      tags: taskSuggestion.tags || [],
+    };
+
+    const createdTask = await createTask(taskData);
+    
+    if (createdTask && taskSuggestion.subtasks && taskSuggestion.subtasks.length > 0) {
+      // Create subtasks
+      for (const subtaskTitle of taskSuggestion.subtasks) {
+        await createTask({
+          title: subtaskTitle,
+          description: `Subtask of: ${taskSuggestion.title}`,
+          priority: 'medium',
+          due_date: '',
+          parent_task_id: createdTask.id,
+          tags: ['subtask'],
+        });
+      }
     }
   };
 
@@ -640,6 +679,7 @@ export const TaskManager: React.FC = () => {
         <AICoachResponse 
           response={aiResponse} 
           onSubtaskAdd={(subtask) => handleSubtaskAdd(subtask)}
+          onTaskAdd={handleTaskAdd}
         />
       )}
 
