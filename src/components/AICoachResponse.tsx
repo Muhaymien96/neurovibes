@@ -18,7 +18,6 @@ interface AICoachResponseProps {
     priority_suggestion?: 'low' | 'medium' | 'high';
     estimated_time?: string;
     encouragement: string;
-    // New fields for workload breakdown
     suggested_tasks?: TaskSuggestion[];
     overall_strategy?: string;
     time_estimate?: string;
@@ -42,7 +41,6 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
   const [addingTasks, setAddingTasks] = useState(false);
   const [addingTaskIndex, setAddingTaskIndex] = useState<number | null>(null);
 
-  // Initialize editedTasks when response changes
   React.useEffect(() => {
     if (response.suggested_tasks) {
       setEditedTasks(response.suggested_tasks);
@@ -76,9 +74,7 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
     
     setAddingTasks(true);
     try {
-      console.log('Adding all tasks from AICoachResponse:', editedTasks);
       await onAddAllTasks(editedTasks);
-      console.log('All tasks added successfully');
     } catch (error) {
       console.error('Error adding all tasks:', error);
     } finally {
@@ -90,10 +86,8 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
     if (!onTaskAdd) return;
     
     setAddingTaskIndex(index);
-    console.log('Adding single task from AICoachResponse:', task);
     try {
       await onTaskAdd(task);
-      console.log('Single task added successfully');
     } catch (error) {
       console.error('Error adding single task:', error);
     } finally {
@@ -102,19 +96,14 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
   };
 
   const handleEditTask = (index: number) => {
-    console.log('Starting edit for task index:', index);
     setEditingTask(index);
   };
 
   const handleSaveEdit = (index: number) => {
-    console.log('Saving edit for task index:', index);
     setEditingTask(null);
-    // The edited task is already updated in editedTasks state
   };
 
   const handleCancelEdit = (index: number) => {
-    console.log('Canceling edit for task index:', index);
-    // Reset to original task
     const originalTask = response.suggested_tasks?.[index];
     if (originalTask) {
       const newEditedTasks = [...editedTasks];
@@ -125,7 +114,6 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
   };
 
   const updateEditedTask = (index: number, field: keyof TaskSuggestion, value: any) => {
-    console.log('Updating task field:', { index, field, value });
     const newEditedTasks = [...editedTasks];
     newEditedTasks[index] = { ...newEditedTasks[index], [field]: value };
     setEditedTasks(newEditedTasks);
@@ -134,7 +122,6 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
   const addSubtaskToEdit = (taskIndex: number, subtask: string) => {
     if (!subtask.trim()) return;
     
-    console.log('Adding subtask to task:', { taskIndex, subtask });
     const newEditedTasks = [...editedTasks];
     const currentSubtasks = newEditedTasks[taskIndex].subtasks || [];
     newEditedTasks[taskIndex] = {
@@ -145,7 +132,6 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
   };
 
   const removeSubtaskFromEdit = (taskIndex: number, subtaskIndex: number) => {
-    console.log('Removing subtask:', { taskIndex, subtaskIndex });
     const newEditedTasks = [...editedTasks];
     const currentSubtasks = newEditedTasks[taskIndex].subtasks || [];
     newEditedTasks[taskIndex] = {
@@ -158,7 +144,6 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
   const addTagToEdit = (taskIndex: number, tag: string) => {
     if (!tag.trim()) return;
     
-    console.log('Adding tag to task:', { taskIndex, tag });
     const newEditedTasks = [...editedTasks];
     const currentTags = newEditedTasks[taskIndex].tags || [];
     if (!currentTags.includes(tag.trim())) {
@@ -171,7 +156,6 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
   };
 
   const removeTagFromEdit = (taskIndex: number, tagIndex: number) => {
-    console.log('Removing tag:', { taskIndex, tagIndex });
     const newEditedTasks = [...editedTasks];
     const currentTags = newEditedTasks[taskIndex].tags || [];
     newEditedTasks[taskIndex] = {
@@ -181,7 +165,6 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
     setEditedTasks(newEditedTasks);
   };
 
-  // Check if this is a workload breakdown response
   const isWorkloadBreakdown = editedTasks && editedTasks.length > 0;
 
   const renderTaskEditForm = (task: TaskSuggestion, index: number) => {
@@ -372,7 +355,7 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
               {isWorkloadBreakdown ? 'AI Workload Analysis' : 'Your AI Coach'}
             </h3>
             <p className="text-sm text-indigo-600">
-              {isWorkloadBreakdown ? 'Smart task breakdown for your workload' : 'Here to support you'}
+              {isWorkloadBreakdown ? 'Smart task breakdown' : 'Here to support you'}
             </p>
           </div>
         </div>
@@ -403,7 +386,6 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
           {response.coaching_response}
         </p>
         
-        {/* Metadata for regular coaching */}
         {!isWorkloadBreakdown && (
           <div className="flex flex-wrap gap-2 mb-3">
             {response.priority_suggestion && (
@@ -421,7 +403,6 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
           </div>
         )}
 
-        {/* Workload breakdown metadata */}
         {isWorkloadBreakdown && (
           <div className="flex items-center space-x-4 text-sm mb-4">
             {response.time_estimate && (
@@ -443,7 +424,7 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
         <div className="mb-6 bg-white/70 p-4 rounded-xl">
           <h4 className="font-medium text-indigo-900 mb-2 flex items-center space-x-2">
             <Brain className="h-4 w-4" />
-            <span>Recommended Strategy</span>
+            <span>Strategy</span>
           </h4>
           <p className="text-indigo-800 text-sm leading-relaxed">{response.overall_strategy}</p>
         </div>
@@ -463,12 +444,12 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
                 {addingTasks ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Adding Tasks...</span>
+                    <span>Adding...</span>
                   </>
                 ) : (
                   <>
                     <Plus className="h-4 w-4" />
-                    <span>Add All Tasks</span>
+                    <span>Add All</span>
                   </>
                 )}
               </button>
@@ -578,36 +559,6 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
               </div>
             ))}
           </div>
-        </div>
-      )}
-
-      {/* Personalized Insights */}
-      {response.personalized_insights && response.personalized_insights.length > 0 && (
-        <div className="mb-4">
-          <h4 className="text-sm font-semibold text-indigo-900 mb-2">Personalized Insights</h4>
-          <ul className="space-y-1">
-            {response.personalized_insights.map((insight, index) => (
-              <li key={index} className="text-sm text-indigo-700 flex items-start space-x-2">
-                <span className="text-indigo-500 mt-1">•</span>
-                <span>{insight}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Recommended Strategies */}
-      {response.recommended_strategies && response.recommended_strategies.length > 0 && (
-        <div className="mb-4">
-          <h4 className="text-sm font-semibold text-indigo-900 mb-2">Recommended Strategies</h4>
-          <ul className="space-y-1">
-            {response.recommended_strategies.map((strategy, index) => (
-              <li key={index} className="text-sm text-indigo-700 flex items-start space-x-2">
-                <span className="text-indigo-500 mt-1">•</span>
-                <span>{strategy}</span>
-              </li>
-            ))}
-          </ul>
         </div>
       )}
 
