@@ -5,21 +5,13 @@ import {
   Shield, 
   Palette, 
   Save, 
-  Eye,
-  EyeOff,
-  Volume2,
-  VolumeX,
-  Zap,
-  ZapOff,
-  Gauge,
-  Type,
-  Contrast,
-  Accessibility,
   Brain,
   Heart,
-  Lightbulb
+  Lightbulb,
+  Code,
+  Crown
 } from 'lucide-react';
-import { useAuthStore, useProfileStore, useSettingsStore } from '../store';
+import { useAuthStore, useProfileStore, useSettingsStore, useSubscriptionStore } from '../store';
 
 export const ProfileSettings: React.FC = () => {
   const { user } = useAuthStore();
@@ -27,14 +19,18 @@ export const ProfileSettings: React.FC = () => {
   const { 
     notifications, 
     privacy, 
-    appearance, 
+    appearance,
+    developer,
     updateNotifications, 
     updatePrivacy, 
-    updateAppearance 
+    updateAppearance,
+    updateDeveloper
   } = useSettingsStore();
   
+  const { setDevMode, devModeEnabled } = useSubscriptionStore();
+  
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'privacy' | 'appearance'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'privacy' | 'appearance' | 'developer'>('profile');
   
   const [profileData, setProfileData] = useState({
     full_name: '',
@@ -56,6 +52,13 @@ export const ProfileSettings: React.FC = () => {
     }
   }, [profile]);
 
+  // Sync dev mode between stores
+  useEffect(() => {
+    if (developer.dev_mode_subscriptions !== devModeEnabled) {
+      setDevMode(developer.dev_mode_subscriptions);
+    }
+  }, [developer.dev_mode_subscriptions, devModeEnabled, setDevMode]);
+
   const handleSaveProfile = async () => {
     setSaving(true);
     try {
@@ -65,6 +68,11 @@ export const ProfileSettings: React.FC = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleDevModeToggle = (enabled: boolean) => {
+    updateDeveloper({ dev_mode_subscriptions: enabled });
+    setDevMode(enabled);
   };
 
   const neurodivergentOptions = [
@@ -79,7 +87,7 @@ export const ProfileSettings: React.FC = () => {
       value: 'adhd', 
       label: 'ADHD', 
       description: 'Attention-focused features, energy-aware scheduling',
-      icon: Zap,
+      icon: Lightbulb,
       color: 'yellow'
     },
     { 
@@ -100,7 +108,7 @@ export const ProfileSettings: React.FC = () => {
       value: 'multiple', 
       label: 'Multiple conditions', 
       description: 'Adaptive features for multiple neurodivergent traits',
-      icon: Lightbulb,
+      icon: Crown,
       color: 'purple'
     },
   ];
@@ -136,6 +144,7 @@ export const ProfileSettings: React.FC = () => {
             { id: 'notifications', label: 'Notifications', icon: Bell },
             { id: 'privacy', label: 'Privacy', icon: Shield },
             { id: 'appearance', label: 'Appearance', icon: Palette },
+            { id: 'developer', label: 'Developer', icon: Code },
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -350,10 +359,7 @@ export const ProfileSettings: React.FC = () => {
             
             {/* Accessibility Features */}
             <div className="space-y-6">
-              <h5 className="font-medium text-gray-900 flex items-center space-x-2">
-                <Accessibility className="h-5 w-5" />
-                <span>Accessibility</span>
-              </h5>
+              <h5 className="font-medium text-gray-900">Accessibility</h5>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="flex items-center justify-between">
@@ -424,10 +430,7 @@ export const ProfileSettings: React.FC = () => {
 
             {/* Text & Reading */}
             <div className="space-y-6">
-              <h5 className="font-medium text-gray-900 flex items-center space-x-2">
-                <Type className="h-5 w-5" />
-                <span>Text & Reading</span>
-              </h5>
+              <h5 className="font-medium text-gray-900">Text & Reading</h5>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -480,73 +483,6 @@ export const ProfileSettings: React.FC = () => {
               </div>
             </div>
 
-            {/* Sensory Adjustments */}
-            <div className="space-y-6">
-              <h5 className="font-medium text-gray-900 flex items-center space-x-2">
-                <Gauge className="h-5 w-5" />
-                <span>Sensory Adjustments</span>
-              </h5>
-              
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Visual Stimulation Level</label>
-                  <select
-                    value={appearance.visual_stimulation_level}
-                    onChange={(e) => updateAppearance({ visual_stimulation_level: e.target.value as any })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  >
-                    <option value="low">Low (Minimal effects)</option>
-                    <option value="medium">Medium (Balanced)</option>
-                    <option value="high">High (Rich visuals)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Sound Effects Volume: {Math.round(appearance.sound_effects_volume * 100)}%
-                  </label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.1"
-                    value={appearance.sound_effects_volume}
-                    onChange={(e) => updateAppearance({ sound_effects_volume: parseFloat(e.target.value) })}
-                    className="w-full"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-gray-900">Haptic Feedback</p>
-                    <p className="text-sm text-gray-600">Vibration feedback for interactions</p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={appearance.haptic_feedback_enabled}
-                      onChange={(e) => updateAppearance({ haptic_feedback_enabled: e.target.checked })}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                  </label>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Animation Speed</label>
-                  <select
-                    value={appearance.animation_speed}
-                    onChange={(e) => updateAppearance({ animation_speed: e.target.value as any })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  >
-                    <option value="slow">Slow</option>
-                    <option value="normal">Normal</option>
-                    <option value="fast">Fast</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
             {/* Other Preferences */}
             <div className="space-y-6">
               <h5 className="font-medium text-gray-900">Other Preferences</h5>
@@ -566,6 +502,44 @@ export const ProfileSettings: React.FC = () => {
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                 </label>
               </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'developer' && (
+          <div className="space-y-6">
+            <h4 className="text-lg font-semibold text-gray-900">Developer Settings</h4>
+            <p className="text-gray-600">
+              These settings are for development and testing purposes only.
+            </p>
+            
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-yellow-900">Dev Mode: Bypass Subscriptions</p>
+                  <p className="text-sm text-yellow-700">
+                    When enabled, all premium features will be accessible without a subscription. 
+                    This simulates a Pro subscription for development and testing.
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={developer.dev_mode_subscriptions}
+                    onChange={(e) => handleDevModeToggle(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-600"></div>
+                </label>
+              </div>
+              
+              {developer.dev_mode_subscriptions && (
+                <div className="mt-3 p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
+                  <p className="text-yellow-800 text-sm font-medium">
+                    ⚠️ Dev Mode Active: All premium features are unlocked. Subscription checks are bypassed.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         )}

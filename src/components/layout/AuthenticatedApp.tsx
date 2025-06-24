@@ -6,7 +6,8 @@ import { MainContent } from './MainContent';
 import { CalmingTools } from '../CalmingTools';
 import { AuthModal } from '../AuthModal';
 import { NotificationCenter } from '../NotificationCenter';
-import { useSettingsStore, useMoodStore, useProfileStore } from '../../store';
+import { Paywall } from '../Paywall';
+import { useSettingsStore, useMoodStore, useProfileStore, useSubscriptionStore } from '../../store';
 
 type ActiveTab = 'focus' | 'tasks' | 'mood' | 'braindump' | 'profile' | 'calming';
 
@@ -19,10 +20,25 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ user }) => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [showCalmingModal, setShowCalmingModal] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [paywallFeature, setPaywallFeature] = useState<string | undefined>();
   
   const { appearance } = useSettingsStore();
   const { entries: moodEntries } = useMoodStore();
   const { profile } = useProfileStore();
+  const { 
+    initializeRevenueCat, 
+    checkSubscriptionStatus, 
+    isSubscribed,
+    loading: subscriptionLoading 
+  } = useSubscriptionStore();
+
+  // Initialize RevenueCat when user is available
+  useEffect(() => {
+    if (user?.id) {
+      initializeRevenueCat(user.id);
+    }
+  }, [user?.id, initializeRevenueCat]);
 
   // Apply global styles based on settings, mood, and neurodivergent type
   useEffect(() => {
@@ -118,11 +134,35 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ user }) => {
     }
   }, [appearance, moodEntries, profile]);
 
+  // Function to check if feature requires subscription
+  const requiresSubscription = (feature: string): boolean => {
+    const premiumFeatures = [
+      'voice_interaction',
+      'advanced_ai',
+      'unlimited_tasks',
+      'mood_insights',
+      'brain_dump_unlimited',
+      'focus_buddy'
+    ];
+    
+    return premiumFeatures.includes(feature) && !isSubscribed();
+  };
+
+  // Function to show paywall for premium features
+  const showFeaturePaywall = (feature: string) => {
+    if (requiresSubscription(feature)) {
+      setPaywallFeature(feature);
+      setShowPaywall(true);
+      return true;
+    }
+    return false;
+  };
+
   const renderMainContent = () => {
     if (activeTab === 'calming') {
       return <CalmingTools />;
     }
-    return <MainContent activeTab={activeTab} user={user} />;
+    return <MainContent activeTab={activeTab} user={user} onFeatureGated={showFeaturePaywall} />;
   };
 
   return (
@@ -169,6 +209,13 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ user }) => {
           </div>
         </div>
       )}
+
+      {/* Paywall Modal */}
+      <Paywall
+        isOpen={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        feature={paywallFeature}
+      />
       
       <div className="flex-grow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

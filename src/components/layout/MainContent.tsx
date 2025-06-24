@@ -13,9 +13,10 @@ type ActiveTab = 'focus' | 'tasks' | 'mood' | 'braindump' | 'profile';
 interface MainContentProps {
   activeTab: ActiveTab;
   user: User | null;
+  onFeatureGated?: (feature: string) => boolean;
 }
 
-export const MainContent: React.FC<MainContentProps> = ({ activeTab, user }) => {
+export const MainContent: React.FC<MainContentProps> = ({ activeTab, user, onFeatureGated }) => {
   const { entries: moodEntries } = useMoodStore();
   const { profile } = useProfileStore();
 
@@ -26,10 +27,10 @@ export const MainContent: React.FC<MainContentProps> = ({ activeTab, user }) => 
         <HomeHeader moodEntries={moodEntries} profile={profile} />
       )}
       
-      {activeTab === 'focus' && <FocusMode user={user} />}
-      {activeTab === 'braindump' && <BrainDump />}
-      {activeTab === 'tasks' && <TaskManager />}
-      {activeTab === 'mood' && <MoodTracker />}
+      {activeTab === 'focus' && <FocusMode user={user} onFeatureGated={onFeatureGated} />}
+      {activeTab === 'braindump' && <BrainDump onFeatureGated={onFeatureGated} />}
+      {activeTab === 'tasks' && <TaskManager onFeatureGated={onFeatureGated} />}
+      {activeTab === 'mood' && <MoodTracker onFeatureGated={onFeatureGated} />}
       {activeTab === 'profile' && <ProfileSettings />}
     </main>
   );
