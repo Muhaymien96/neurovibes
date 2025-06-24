@@ -34,6 +34,7 @@ export interface Task {
   recurrence_end_date?: string;
   task_order?: number;
   tags?: string[];
+  complexity?: number;
 }
 
 export interface MoodEntry {

@@ -1,3 +1,147 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Global accessibility and appearance styles */
+:root {
+  --text-size: 16px;
+  --line-height: 1.5;
+  --animation-duration: 0.2s;
+}
+
+/* High contrast mode */
+.high-contrast {
+  --tw-bg-white: #000000;
+  --tw-text-gray-900: #ffffff;
+  --tw-text-gray-600: #cccccc;
+  --tw-border-gray-200: #ffffff;
+}
+
+.high-contrast * {
+  border-color: #ffffff !important;
+}
+
+.high-contrast .bg-white {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+.high-contrast .text-gray-900 {
+  color: #ffffff !important;
+}
+
+.high-contrast .text-gray-600 {
+  color: #cccccc !important;
+}
+
+/* Reduced motion */
+.reduce-motion * {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Minimalist mode */
+.minimalist .shadow-lg,
+.minimalist .shadow-md,
+.minimalist .shadow-sm {
+  box-shadow: none !important;
+}
+
+.minimalist .bg-gradient-to-br,
+.minimalist .bg-gradient-to-r {
+  background: #ffffff !important;
+}
+
+.minimalist .border-2 {
+  border-width: 1px !important;
+}
+
+/* Colorblind friendly mode */
+.colorblind-friendly .bg-red-500,
+.colorblind-friendly .bg-red-600 {
+  background-color: #0066cc !important;
+}
+
+.colorblind-friendly .bg-green-500,
+.colorblind-friendly .bg-green-600 {
+  background-color: #ff9900 !important;
+}
+
+.colorblind-friendly .text-red-600 {
+  color: #0066cc !important;
+}
+
+.colorblind-friendly .text-green-600 {
+  color: #ff9900 !important;
+}
+
+/* Dyslexia friendly font */
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://cdn.jsdelivr.net/npm/opendyslexic@1.0.3/fonts/OpenDyslexic-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Touch target minimum size */
+button, 
+input[type="button"], 
+input[type="submit"], 
+input[type="reset"], 
+a {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Focus indicators */
+button:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
+}
+
+/* Reading mode styles */
+.reading-mode {
+  font-size: var(--text-size);
+  line-height: var(--line-height);
+}
+
+/* Animation speed control */
+.animation-slow * {
+  animation-duration: calc(var(--animation-duration) * 2) !important;
+  transition-duration: calc(var(--animation-duration) * 2) !important;
+}
+
+.animation-fast * {
+  animation-duration: calc(var(--animation-duration) * 0.5) !important;
+  transition-duration: calc(var(--animation-duration) * 0.5) !important;
+}
+
+/* Ensure proper contrast ratios */
+.bg-indigo-50 {
+  color: #1e1b4b;
+}
+
+.bg-purple-50 {
+  color: #581c87;
+}
+
+.bg-blue-50 {
+  color: #1e3a8a;
+}
+
+.bg-green-50 {
+  color: #14532d;
+}
+
+.bg-yellow-50 {
+  color: #92400e;
+}
+
+.bg-red-50 {
+  color: #991b1b;
+}

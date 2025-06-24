@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { 
   User, 
-  Mail, 
   Bell, 
   Shield, 
   Palette, 
-  Globe, 
   Save, 
-  Edit3,
   Eye,
   EyeOff,
-  Trash2,
-  Download,
-  Upload
+  Volume2,
+  VolumeX,
+  Zap,
+  ZapOff,
+  Gauge,
+  Type,
+  Contrast,
+  Accessibility
 } from 'lucide-react';
 import { useAuthStore, useProfileStore, useSettingsStore } from '../store';
 
@@ -29,8 +31,7 @@ export const ProfileSettings: React.FC = () => {
   } = useSettingsStore();
   
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'privacy' | 'appearance' | 'data'>('profile');
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'privacy' | 'appearance'>('profile');
   
   const [profileData, setProfileData] = useState({
     full_name: '',
@@ -61,17 +62,6 @@ export const ProfileSettings: React.FC = () => {
     }
   };
 
-  const handleExportData = () => {
-    // In a real app, this would trigger a data export
-    alert('Data export will be sent to your email within 24 hours.');
-  };
-
-  const handleDeleteAccount = () => {
-    // In a real app, this would trigger account deletion
-    alert('Account deletion requested. You will receive a confirmation email.');
-    setShowDeleteConfirm(false);
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -84,8 +74,8 @@ export const ProfileSettings: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h3 className="text-2xl font-bold text-gray-900">Profile & Settings</h3>
-        <p className="text-gray-600 mt-1">Manage your account settings and preferences</p>
+        <h3 className="text-2xl font-bold text-gray-900">Settings</h3>
+        <p className="text-gray-600 mt-1">Customize your MindMesh experience</p>
       </div>
 
       {/* Error Display */}
@@ -103,7 +93,6 @@ export const ProfileSettings: React.FC = () => {
             { id: 'notifications', label: 'Notifications', icon: Bell },
             { id: 'privacy', label: 'Privacy', icon: Shield },
             { id: 'appearance', label: 'Appearance', icon: Palette },
-            { id: 'data', label: 'Data', icon: Download },
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -180,11 +169,9 @@ export const ProfileSettings: React.FC = () => {
                       {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                     </p>
                     <p className="text-sm text-gray-600">
-                      {key === 'email_reminders' && 'Receive reminder emails for important tasks'}
-                      {key === 'push_notifications' && 'Get browser notifications for urgent items'}
-                      {key === 'smart_reminders' && 'AI-powered contextual reminders'}
-                      {key === 'task_deadlines' && 'Notifications for approaching deadlines'}
-                      {key === 'mood_check_ins' && 'Gentle reminders to log your mood'}
+                      {key === 'smart_reminders' && 'AI-powered contextual reminders based on your patterns'}
+                      {key === 'task_deadlines' && 'Notifications for approaching task deadlines'}
+                      {key === 'mood_check_ins' && 'Gentle reminders to log your mood and energy levels'}
                     </p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
@@ -214,9 +201,8 @@ export const ProfileSettings: React.FC = () => {
                       {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                     </p>
                     <p className="text-sm text-gray-600">
-                      {key === 'data_sharing' && 'Share anonymized data to improve MindMesh for everyone'}
                       {key === 'analytics' && 'Allow usage analytics to help us improve the app'}
-                      {key === 'personalization' && 'Use your data to provide personalized experiences'}
+                      {key === 'personalization' && 'Use your data to provide personalized experiences and insights'}
                     </p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
@@ -235,63 +221,222 @@ export const ProfileSettings: React.FC = () => {
         )}
 
         {activeTab === 'appearance' && (
-          <div className="space-y-6">
-            <h4 className="text-lg font-semibold text-gray-900">Appearance Settings</h4>
+          <div className="space-y-8">
+            <h4 className="text-lg font-semibold text-gray-900">Appearance & Accessibility</h4>
             
+            {/* Accessibility Features */}
             <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Theme</label>
-                <div className="grid grid-cols-3 gap-3">
-                  {['light', 'dark', 'auto'].map((theme) => (
-                    <button
-                      key={theme}
-                      onClick={() => updateAppearance({ theme: theme as any })}
-                      className={`p-3 border rounded-lg text-center capitalize ${
-                        appearance.theme === theme
-                          ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                          : 'border-gray-300 hover:border-gray-400'
-                      }`}
-                    >
-                      {theme}
-                    </button>
-                  ))}
+              <h5 className="font-medium text-gray-900 flex items-center space-x-2">
+                <Accessibility className="h-5 w-5" />
+                <span>Accessibility</span>
+              </h5>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-900">High Contrast Mode</p>
+                    <p className="text-sm text-gray-600">Increase contrast for better visibility</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={appearance.high_contrast_mode}
+                      onChange={(e) => updateAppearance({ high_contrast_mode: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-900">Colorblind Mode</p>
+                    <p className="text-sm text-gray-600">Adjust colors for colorblind users</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={appearance.colorblind_mode}
+                      onChange={(e) => updateAppearance({ colorblind_mode: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-900">Reduced Motion</p>
+                    <p className="text-sm text-gray-600">Minimize animations and transitions</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={appearance.reduced_motion}
+                      onChange={(e) => updateAppearance({ reduced_motion: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-900">Minimalist Mode</p>
+                    <p className="text-sm text-gray-600">Reduce visual clutter and distractions</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={appearance.minimalist_mode}
+                      onChange={(e) => updateAppearance({ minimalist_mode: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
                 </div>
               </div>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Color Scheme</label>
-                <div className="grid grid-cols-4 gap-3">
-                  {[
-                    { name: 'indigo', color: 'bg-indigo-500' },
-                    { name: 'purple', color: 'bg-purple-500' },
-                    { name: 'blue', color: 'bg-blue-500' },
-                    { name: 'green', color: 'bg-green-500' },
-                  ].map(({ name, color }) => (
-                    <button
-                      key={name}
-                      onClick={() => updateAppearance({ color_scheme: name as any })}
-                      className={`p-3 border rounded-lg flex items-center justify-center ${
-                        appearance.color_scheme === name
-                          ? 'border-gray-800 ring-2 ring-gray-300'
-                          : 'border-gray-300 hover:border-gray-400'
-                      }`}
-                    >
-                      <div className={`w-6 h-6 rounded-full ${color}`}></div>
-                    </button>
-                  ))}
+            {/* Text & Reading */}
+            <div className="space-y-6">
+              <h5 className="font-medium text-gray-900 flex items-center space-x-2">
+                <Type className="h-5 w-5" />
+                <span>Text & Reading</span>
+              </h5>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Text Size</label>
+                  <select
+                    value={appearance.text_size}
+                    onChange={(e) => updateAppearance({ text_size: e.target.value as any })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  >
+                    <option value="small">Small</option>
+                    <option value="medium">Medium</option>
+                    <option value="large">Large</option>
+                    <option value="xlarge">Extra Large</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Line Spacing</label>
+                  <select
+                    value={appearance.line_spacing}
+                    onChange={(e) => updateAppearance({ line_spacing: e.target.value as any })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  >
+                    <option value="normal">Normal</option>
+                    <option value="wide">Wide</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Font Preference</label>
+                  <select
+                    value={appearance.font_preference}
+                    onChange={(e) => updateAppearance({ font_preference: e.target.value as any })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  >
+                    <option value="default">Default</option>
+                    <option value="dyslexia_friendly">Dyslexia Friendly</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Reading Background</label>
+                  <input
+                    type="color"
+                    value={appearance.background_color_for_reading}
+                    onChange={(e) => updateAppearance({ background_color_for_reading: e.target.value })}
+                    className="w-full h-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  />
                 </div>
               </div>
+            </div>
 
+            {/* Sensory Adjustments */}
+            <div className="space-y-6">
+              <h5 className="font-medium text-gray-900 flex items-center space-x-2">
+                <Gauge className="h-5 w-5" />
+                <span>Sensory Adjustments</span>
+              </h5>
+              
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Visual Stimulation Level</label>
+                  <select
+                    value={appearance.visual_stimulation_level}
+                    onChange={(e) => updateAppearance({ visual_stimulation_level: e.target.value as any })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  >
+                    <option value="low">Low (Minimal effects)</option>
+                    <option value="medium">Medium (Balanced)</option>
+                    <option value="high">High (Rich visuals)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Sound Effects Volume: {Math.round(appearance.sound_effects_volume * 100)}%
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={appearance.sound_effects_volume}
+                    onChange={(e) => updateAppearance({ sound_effects_volume: parseFloat(e.target.value) })}
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-900">Haptic Feedback</p>
+                    <p className="text-sm text-gray-600">Vibration feedback for interactions</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={appearance.haptic_feedback_enabled}
+                      onChange={(e) => updateAppearance({ haptic_feedback_enabled: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Animation Speed</label>
+                  <select
+                    value={appearance.animation_speed}
+                    onChange={(e) => updateAppearance({ animation_speed: e.target.value as any })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  >
+                    <option value="slow">Slow</option>
+                    <option value="normal">Normal</option>
+                    <option value="fast">Fast</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Other Preferences */}
+            <div className="space-y-6">
+              <h5 className="font-medium text-gray-900">Other Preferences</h5>
+              
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-gray-900">Compact Mode</p>
-                  <p className="text-sm text-gray-600">Use a more compact layout to fit more content</p>
+                  <p className="font-medium text-gray-900">Mood-Responsive Colors</p>
+                  <p className="text-sm text-gray-600">Adapt interface colors based on your mood</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={appearance.compact_mode}
-                    onChange={(e) => updateAppearance({ compact_mode: e.target.checked })}
+                    checked={appearance.mood_responsive_colors}
+                    onChange={(e) => updateAppearance({ mood_responsive_colors: e.target.checked })}
                     className="sr-only peer"
                   />
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
@@ -300,73 +445,7 @@ export const ProfileSettings: React.FC = () => {
             </div>
           </div>
         )}
-
-        {activeTab === 'data' && (
-          <div className="space-y-6">
-            <h4 className="text-lg font-semibold text-gray-900">Data Management</h4>
-            
-            <div className="space-y-4">
-              <div className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h5 className="font-medium text-gray-900">Export Your Data</h5>
-                    <p className="text-sm text-gray-600">Download a copy of all your MindMesh data</p>
-                  </div>
-                  <button
-                    onClick={handleExportData}
-                    className="flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
-                  >
-                    <Download className="h-4 w-4" />
-                    <span>Export Data</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="border border-red-200 rounded-lg p-4 bg-red-50">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h5 className="font-medium text-red-900">Delete Account</h5>
-                    <p className="text-sm text-red-700">Permanently delete your account and all associated data</p>
-                  </div>
-                  <button
-                    onClick={() => setShowDeleteConfirm(true)}
-                    className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    <span>Delete Account</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Delete Account</h3>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to delete your account? This action cannot be undone and will permanently remove all your data.
-            </p>
-            <div className="flex space-x-3">
-              <button
-                onClick={handleDeleteAccount}
-                className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Delete Account
-              </button>
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg hover:bg-gray-300 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

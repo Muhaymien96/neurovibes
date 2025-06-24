@@ -21,7 +21,9 @@ import {
   Sparkles,
   Play,
   Pause,
-  RotateCcw
+  RotateCcw,
+  Star,
+  Gauge
 } from 'lucide-react';
 import { useTasksStore, useAuthStore } from '../store';
 import { useAICoach } from '../hooks/useAICoach';
@@ -35,6 +37,7 @@ interface TaskSuggestion {
   estimated_time: string;
   subtasks?: string[];
   tags?: string[];
+  complexity?: number;
 }
 
 export const TaskManager: React.FC = () => {
@@ -68,6 +71,8 @@ export const TaskManager: React.FC = () => {
     recurrence_pattern: '',
     recurrence_end_date: '',
     tags: [] as string[],
+    complexity: 3,
+    estimated_time: '',
   });
   const [newTag, setNewTag] = useState('');
 
@@ -116,6 +121,8 @@ export const TaskManager: React.FC = () => {
         recurrence_pattern: '',
         recurrence_end_date: '',
         tags: [],
+        complexity: 3,
+        estimated_time: '',
       });
       setShowAddForm(false);
     }
@@ -143,8 +150,6 @@ export const TaskManager: React.FC = () => {
 
   const handleTaskAdd = async (taskSuggestion: TaskSuggestion) => {
     try {
-      console.log('Adding task from suggestion:', taskSuggestion);
-      
       const taskData = {
         title: taskSuggestion.title,
         description: taskSuggestion.description,
@@ -154,17 +159,13 @@ export const TaskManager: React.FC = () => {
         recurrence_pattern: undefined,
         recurrence_end_date: undefined,
         tags: taskSuggestion.tags || [],
+        complexity: taskSuggestion.complexity || 3,
       };
 
-      console.log('Creating task with data:', taskData);
       const createdTask = await createTask(taskData);
       
       if (createdTask) {
-        console.log('Task created successfully:', createdTask);
-        
         if (taskSuggestion.subtasks && taskSuggestion.subtasks.length > 0) {
-          console.log('Creating subtasks:', taskSuggestion.subtasks);
-          
           for (const subtaskTitle of taskSuggestion.subtasks) {
             const subtaskData = {
               title: subtaskTitle,
@@ -173,16 +174,12 @@ export const TaskManager: React.FC = () => {
               due_date: undefined,
               parent_task_id: createdTask.id,
               tags: ['subtask'],
+              complexity: Math.max(1, (taskSuggestion.complexity || 3) - 1),
             };
             
-            console.log('Creating subtask:', subtaskData);
             await createTask(subtaskData);
           }
         }
-        
-        console.log('Task and subtasks created successfully');
-      } else {
-        console.error('Failed to create task');
       }
     } catch (error) {
       console.error('Error in handleTaskAdd:', error);
@@ -190,10 +187,7 @@ export const TaskManager: React.FC = () => {
   };
 
   const handleAddAllTasks = async (tasks: TaskSuggestion[]) => {
-    console.log('Adding all tasks:', tasks);
-    
     if (!tasks || tasks.length === 0) {
-      console.warn('No tasks to add');
       return;
     }
 
@@ -202,8 +196,6 @@ export const TaskManager: React.FC = () => {
         await handleTaskAdd(task);
         await new Promise(resolve => setTimeout(resolve, 100));
       }
-      
-      console.log('All tasks added successfully');
     } catch (error) {
       console.error('Error adding all tasks:', error);
     }
@@ -221,6 +213,8 @@ export const TaskManager: React.FC = () => {
       priority: task.priority,
       due_date: task.due_date ? new Date(task.due_date).toISOString().slice(0, 16) : '',
       tags: task.tags || [],
+      complexity: task.complexity || 3,
+      estimated_time: task.estimated_time || '',
     });
     setShowTaskMenu(null);
   };
@@ -234,6 +228,7 @@ export const TaskManager: React.FC = () => {
       priority: editFormData.priority,
       due_date: editFormData.due_date || undefined,
       tags: editFormData.tags,
+      complexity: editFormData.complexity,
     });
 
     setEditingTask(null);
@@ -251,14 +246,13 @@ export const TaskManager: React.FC = () => {
   };
 
   const handleSubtaskAdd = async (subtaskTitle: string, parentId?: string) => {
-    console.log('Adding subtask:', subtaskTitle, 'to parent:', parentId);
-    
     const subtaskData = {
       title: subtaskTitle,
       description: 'Generated from AI coaching',
       priority: 'medium' as Task['priority'],
       due_date: undefined,
       parent_task_id: parentId,
+      complexity: 2,
     };
     
     await createTask(subtaskData);
@@ -319,6 +313,7 @@ export const TaskManager: React.FC = () => {
       recurrence_pattern: completedTask.recurrence_pattern,
       recurrence_end_date: completedTask.recurrence_end_date,
       tags: completedTask.tags || [],
+      complexity: completedTask.complexity || 3,
     });
   };
 
@@ -434,6 +429,17 @@ export const TaskManager: React.FC = () => {
     }
   };
 
+  const getComplexityStars = (complexity: number) => {
+    return Array.from({ length: 5 }, (_, i) => (
+      <Star
+        key={i}
+        className={`h-3 w-3 ${
+          i < complexity ? 'text-yellow-400 fill-current' : 'text-gray-300'
+        }`}
+      />
+    ));
+  };
+
   const renderEditForm = (task: any) => (
     <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
       <div className="space-y-4">
@@ -457,7 +463,7 @@ export const TaskManager: React.FC = () => {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
             <select
@@ -468,6 +474,19 @@ export const TaskManager: React.FC = () => {
               <option value="low">Low</option>
               <option value="medium">Medium</option>
               <option value="high">High</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Complexity</label>
+            <select
+              value={editFormData.complexity}
+              onChange={(e) => setEditFormData({ ...editFormData, complexity: parseInt(e.target.value) })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            >
+              {[1, 2, 3, 4, 5].map(level => (
+                <option key={level} value={level}>{level} Star{level !== 1 ? 's' : ''}</option>
+              ))}
             </select>
           </div>
 
@@ -627,6 +646,22 @@ export const TaskManager: React.FC = () => {
                   {task.priority}
                 </span>
                 
+                {task.complexity && (
+                  <div className="flex items-center space-x-1 px-2 py-1 bg-yellow-50 border border-yellow-200 rounded-full">
+                    <Gauge className="h-3 w-3 text-yellow-600" />
+                    <div className="flex space-x-0.5">
+                      {getComplexityStars(task.complexity)}
+                    </div>
+                  </div>
+                )}
+                
+                {task.estimated_time && (
+                  <span className="flex items-center space-x-1 text-xs text-gray-500 px-2 py-1 bg-gray-100 rounded-full">
+                    <Clock className="h-3 w-3" />
+                    <span>{task.estimated_time}</span>
+                  </span>
+                )}
+                
                 {task.due_date && (
                   <span className="flex items-center space-x-1 text-xs text-gray-500">
                     <Calendar className="h-3 w-3" />
@@ -739,7 +774,7 @@ export const TaskManager: React.FC = () => {
           <h4 className="text-lg font-semibold text-purple-900">AI Workload Breakdown</h4>
         </div>
         <p className="text-purple-700 mb-4 text-sm">
-          Describe your workload and AI will break it down into manageable tasks.
+          Describe your workload and AI will break it down into manageable tasks with complexity ratings.
         </p>
         <div className="space-y-3">
           <textarea
@@ -813,7 +848,7 @@ export const TaskManager: React.FC = () => {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Priority
@@ -831,15 +866,43 @@ export const TaskManager: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Due Date (optional)
+                  Complexity (1-5 stars)
+                </label>
+                <select
+                  value={newTask.complexity}
+                  onChange={(e) => setNewTask({ ...newTask, complexity: parseInt(e.target.value) })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                >
+                  {[1, 2, 3, 4, 5].map(level => (
+                    <option key={level} value={level}>{level} Star{level !== 1 ? 's' : ''}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Estimated Time
                 </label>
                 <input
-                  type="datetime-local"
-                  value={newTask.due_date}
-                  onChange={(e) => setNewTask({ ...newTask, due_date: e.target.value })}
+                  type="text"
+                  value={newTask.estimated_time}
+                  onChange={(e) => setNewTask({ ...newTask, estimated_time: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  placeholder="e.g., 2 hours, 30 min"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Due Date (optional)
+              </label>
+              <input
+                type="datetime-local"
+                value={newTask.due_date}
+                onChange={(e) => setNewTask({ ...newTask, due_date: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">

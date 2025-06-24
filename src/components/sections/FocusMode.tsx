@@ -1,10 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
-import { Brain, Mic, AlertCircle } from 'lucide-react';
+import { 
+  Brain, 
+  Mic, 
+  AlertCircle, 
+  Play, 
+  Pause, 
+  RotateCcw, 
+  Timer, 
+  Coffee, 
+  Users,
+  Volume2,
+  VolumeX,
+  Bell,
+  BellOff
+} from 'lucide-react';
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 import { useElevenLabsTTS } from '../../hooks/useElevenLabsTTS';
 import { useAICoach } from '../../hooks/useAICoach';
-import { useAuthStore } from '../../store';
+import { useAuthStore, useMoodStore, useSettingsStore } from '../../store';
 import { AICoachResponse } from '../AICoachResponse';
 import { VoiceControls } from '../ui/VoiceControls';
 import { QuickActions } from '../ui/QuickActions';
@@ -15,10 +29,22 @@ interface FocusModeProps {
 
 export const FocusMode: React.FC<FocusModeProps> = ({ user }) => {
   const { user: authUser } = useAuthStore();
+  const { entries: moodEntries } = useMoodStore();
+  const { notifications } = useSettingsStore();
+  
   const [aiResponse, setAiResponse] = useState<any>(null);
   const [userTranscript, setUserTranscript] = useState('');
   const [showTranscript, setShowTranscript] = useState(false);
   const [lastProcessedTranscript, setLastProcessedTranscript] = useState('');
+  
+  // Pomodoro Timer State
+  const [timerDuration, setTimerDuration] = useState(25); // minutes
+  const [breakDuration, setBreakDuration] = useState(5); // minutes
+  const [timeLeft, setTimeLeft] = useState(25 * 60); // seconds
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [currentPhase, setCurrentPhase] = useState<'work' | 'break'>('work');
+  const [focusModeActive, setFocusModeActive] = useState(false);
+  const [notificationsBlocked, setNotificationsBlocked] = useState(false);
   
   const { 
     isListening, 
@@ -39,92 +65,90 @@ export const FocusMode: React.FC<FocusModeProps> = ({ user }) => {
 
   const { getCoachingResponse, loading: aiLoading } = useAICoach();
 
-  // Handle completed speech recognition - prevent duplicate processing
+  // Timer effect
   useEffect(() => {
-    console.log('Speech recognition effect triggered:', {
-      transcript,
-      isListening,
-      lastProcessedTranscript,
-      transcriptLength: transcript?.length,
-      lastProcessedLength: lastProcessedTranscript?.length
-    });
+    let interval: NodeJS.Timeout;
+    
+    if (isTimerRunning && timeLeft > 0) {
+      interval = setInterval(() => {
+        setTimeLeft(prev => prev - 1);
+      }, 1000);
+    } else if (timeLeft === 0) {
+      // Timer finished
+      setIsTimerRunning(false);
+      
+      if (currentPhase === 'work') {
+        setCurrentPhase('break');
+        setTimeLeft(breakDuration * 60);
+        speak("Great work! Time for a break.");
+      } else {
+        setCurrentPhase('work');
+        setTimeLeft(timerDuration * 60);
+        speak("Break's over! Ready to focus again?");
+      }
+    }
+    
+    return () => clearInterval(interval);
+  }, [isTimerRunning, timeLeft, currentPhase, timerDuration, breakDuration, speak]);
 
+  // Handle completed speech recognition
+  useEffect(() => {
     if (transcript && !isListening && transcript !== lastProcessedTranscript) {
-      console.log('Processing new transcript:', transcript);
       setUserTranscript(transcript);
       setShowTranscript(true);
       setLastProcessedTranscript(transcript);
-      
-      // Generate AI response using Gemini
       handleVoiceInput(transcript);
     }
   }, [transcript, isListening, lastProcessedTranscript]);
 
   const handleVoiceInput = async (input: string) => {
-    console.log('handleVoiceInput called with:', input);
-    
-    // Prevent duplicate processing
     if (aiLoading || input === lastProcessedTranscript) {
-      console.log('Skipping voice input processing:', { aiLoading, isDuplicate: input === lastProcessedTranscript });
       return;
     }
 
-    console.log('Getting AI coaching response...');
+    // Get current energy level from latest mood entry
+    const latestMood = moodEntries[0];
+    const energyLevel = latestMood?.energy_level || 5;
+
     const response = await getCoachingResponse({
       input,
       type: 'voice_note',
       context: {
         user_id: authUser?.id,
         include_historical_data: true,
+        energy_level: energyLevel,
+        focus_mode_active: focusModeActive,
       }
     });
 
     if (response) {
-      console.log('AI response received:', response);
       setAiResponse(response);
       
-      // Speak the response using ElevenLabs with a delay to ensure UI updates first
       const fullResponse = `${response.coaching_response} ${response.encouragement}`;
       setTimeout(() => {
-        // Only speak if not already speaking
         if (!isSpeaking && !ttsLoading) {
-          console.log('Speaking AI response...');
           speak(fullResponse);
-        } else {
-          console.log('Skipping TTS - already speaking or loading:', { isSpeaking, ttsLoading });
         }
       }, 500);
-    } else {
-      console.log('No AI response received');
     }
   };
 
   const handleMicClick = () => {
-    console.log('Mic button clicked');
-    console.log('Current state:', { isListening, isSpeaking, ttsLoading, speechSupported });
-    
     if (isListening) {
-      console.log('Stopping listening...');
       stopListening();
     } else {
       if (isSpeaking) {
-        console.log('Stopping current speech...');
         stopSpeaking();
       }
-      console.log('Starting listening...');
       startListening();
       setShowTranscript(false);
       setAiResponse(null);
-      setLastProcessedTranscript(''); // Reset to allow new processing
+      setLastProcessedTranscript('');
     }
   };
 
   const handleQuickAction = async (action: string) => {
-    console.log('Quick action triggered:', action);
-    
-    // Prevent duplicate calls
     if (aiLoading || ttsLoading || isSpeaking) {
-      console.log('Skipping quick action - system busy:', { aiLoading, ttsLoading, isSpeaking });
       return;
     }
 
@@ -137,7 +161,6 @@ export const FocusMode: React.FC<FocusModeProps> = ({ user }) => {
 
     const input = actionTexts[action as keyof typeof actionTexts] || action;
     
-    console.log('Getting AI response for quick action...');
     const response = await getCoachingResponse({
       input,
       type: 'voice_note',
@@ -148,21 +171,60 @@ export const FocusMode: React.FC<FocusModeProps> = ({ user }) => {
     });
 
     if (response) {
-      console.log('Quick action AI response received:', response);
       setAiResponse(response);
       setUserTranscript('');
       setShowTranscript(false);
       
-      // Speak the response with delay and duplicate check
       const fullResponse = `${response.coaching_response} ${response.encouragement}`;
       setTimeout(() => {
         if (!isSpeaking && !ttsLoading) {
-          console.log('Speaking quick action response...');
           speak(fullResponse);
         }
       }, 200);
     }
   };
+
+  const startTimer = () => {
+    setIsTimerRunning(true);
+    setFocusModeActive(true);
+    
+    // Block notifications if enabled
+    if (notifications.smart_reminders) {
+      setNotificationsBlocked(true);
+    }
+  };
+
+  const pauseTimer = () => {
+    setIsTimerRunning(false);
+  };
+
+  const resetTimer = () => {
+    setIsTimerRunning(false);
+    setCurrentPhase('work');
+    setTimeLeft(timerDuration * 60);
+    setFocusModeActive(false);
+    setNotificationsBlocked(false);
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const getBreakSuggestion = () => {
+    const latestMood = moodEntries[0];
+    const energyLevel = latestMood?.energy_level || 5;
+    
+    if (energyLevel <= 3) {
+      return Math.max(breakDuration + 5, 10); // Longer break for low energy
+    } else if (energyLevel >= 8) {
+      return Math.max(breakDuration - 2, 3); // Shorter break for high energy
+    }
+    return breakDuration;
+  };
+
+  const suggestedBreak = getBreakSuggestion();
 
   return (
     <div className="space-y-8">
@@ -171,9 +233,157 @@ export const FocusMode: React.FC<FocusModeProps> = ({ user }) => {
           AI-Powered Focus Mode
         </h2>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          Your AI coach powered by Gemini is ready to help. Speak naturally about what you're working on, 
-          how you're feeling, or what's blocking you.
+          Your AI coach powered by Gemini is ready to help. Use the Pomodoro timer to stay focused, 
+          or speak naturally about what you're working on.
         </p>
+      </div>
+
+      {/* Pomodoro Timer Section */}
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-8 rounded-2xl border border-blue-100">
+        <div className="text-center space-y-6">
+          <h3 className="text-2xl font-bold text-blue-900 flex items-center justify-center space-x-2">
+            <Timer className="h-6 w-6" />
+            <span>Focus Timer</span>
+          </h3>
+          
+          {/* Timer Display */}
+          <div className="relative">
+            <div className={`text-6xl font-mono font-bold ${
+              currentPhase === 'work' ? 'text-blue-600' : 'text-green-600'
+            }`}>
+              {formatTime(timeLeft)}
+            </div>
+            <div className="text-lg text-gray-600 mt-2">
+              {currentPhase === 'work' ? 'Focus Time' : 'Break Time'}
+            </div>
+            
+            {/* Progress Ring */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <svg className="w-48 h-48 transform -rotate-90" viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="45"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  fill="none"
+                  className="text-gray-200"
+                />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="45"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  fill="none"
+                  strokeDasharray={`${2 * Math.PI * 45}`}
+                  strokeDashoffset={`${2 * Math.PI * 45 * (1 - (timeLeft / ((currentPhase === 'work' ? timerDuration : breakDuration) * 60)))}`}
+                  className={currentPhase === 'work' ? 'text-blue-500' : 'text-green-500'}
+                  strokeLinecap="round"
+                />
+              </svg>
+            </div>
+          </div>
+
+          {/* Timer Controls */}
+          <div className="flex items-center justify-center space-x-4">
+            <button
+              onClick={isTimerRunning ? pauseTimer : startTimer}
+              className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-semibold transition-colors ${
+                isTimerRunning 
+                  ? 'bg-orange-600 text-white hover:bg-orange-700' 
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+            >
+              {isTimerRunning ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+              <span>{isTimerRunning ? 'Pause' : 'Start'}</span>
+            </button>
+            
+            <button
+              onClick={resetTimer}
+              className="flex items-center space-x-2 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              <RotateCcw className="h-5 w-5" />
+              <span>Reset</span>
+            </button>
+          </div>
+
+          {/* Timer Settings */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-md mx-auto">
+            <div>
+              <label className="block text-sm font-medium text-blue-900 mb-2">
+                Focus Duration: {timerDuration} min
+              </label>
+              <input
+                type="range"
+                min="15"
+                max="60"
+                step="5"
+                value={timerDuration}
+                onChange={(e) => {
+                  const newDuration = parseInt(e.target.value);
+                  setTimerDuration(newDuration);
+                  if (!isTimerRunning && currentPhase === 'work') {
+                    setTimeLeft(newDuration * 60);
+                  }
+                }}
+                disabled={isTimerRunning}
+                className="w-full"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-blue-900 mb-2">
+                Break Duration: {breakDuration} min
+                {suggestedBreak !== breakDuration && (
+                  <span className="text-xs text-green-600 ml-2">
+                    (Suggested: {suggestedBreak} min)
+                  </span>
+                )}
+              </label>
+              <input
+                type="range"
+                min="3"
+                max="15"
+                step="1"
+                value={breakDuration}
+                onChange={(e) => {
+                  const newDuration = parseInt(e.target.value);
+                  setBreakDuration(newDuration);
+                  if (!isTimerRunning && currentPhase === 'break') {
+                    setTimeLeft(newDuration * 60);
+                  }
+                }}
+                disabled={isTimerRunning}
+                className="w-full"
+              />
+            </div>
+          </div>
+
+          {/* Focus Mode Features */}
+          <div className="flex items-center justify-center space-x-6 text-sm">
+            <div className="flex items-center space-x-2">
+              {notificationsBlocked ? (
+                <BellOff className="h-4 w-4 text-red-600" />
+              ) : (
+                <Bell className="h-4 w-4 text-gray-400" />
+              )}
+              <span className={notificationsBlocked ? 'text-red-600' : 'text-gray-600'}>
+                {notificationsBlocked ? 'Notifications Blocked' : 'Notifications Active'}
+              </span>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Coffee className="h-4 w-4 text-blue-600" />
+              <span className="text-blue-600">Break suggestions based on energy</span>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Users className="h-4 w-4 text-purple-600" />
+              <span className="text-purple-600">Body doubling (coming soon)</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Debug Information */}
