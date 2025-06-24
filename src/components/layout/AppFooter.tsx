@@ -1,7 +1,7 @@
 import React from 'react';
 import { Brain, Heart } from 'lucide-react';
 
-type ContentPage = 'features' | 'pricing' | 'integrations' | 'help' | 'contact' | 'privacy';
+type ContentPage = 'features' | 'pricing' | 'help' | 'contact' | 'privacy';
 
 interface AppFooterProps {
   onPageNavigation?: (page: ContentPage) => void;
@@ -50,14 +50,6 @@ export const AppFooter: React.FC<AppFooterProps> = ({ onPageNavigation }) => {
                   className="text-gray-400 hover:text-white transition-colors"
                 >
                   Pricing
-                </button>
-              </li>
-              <li>
-                <button 
-                  onClick={() => onPageNavigation?.('integrations')}
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  Integrations
                 </button>
               </li>
             </ul>

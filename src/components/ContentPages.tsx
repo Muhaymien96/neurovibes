@@ -1,8 +1,8 @@
 import React from 'react';
-import { Brain, CheckSquare, BarChart3, Calendar, Zap, Shield, Heart, Mail, Phone, MapPin, Clock, Users, Star, Check, ArrowRight, Lightbulb, Target, Sparkles } from 'lucide-react';
+import { Brain, CheckSquare, BarChart3, Zap, Shield, Heart, Mail, Phone, Clock, Star, Check, ArrowRight, Lightbulb, Target, Sparkles } from 'lucide-react';
 
 interface ContentPagesProps {
-  page: 'features' | 'pricing' | 'integrations' | 'help' | 'contact' | 'privacy';
+  page: 'features' | 'pricing' | 'help' | 'contact' | 'privacy';
 }
 
 export const ContentPages: React.FC<ContentPagesProps> = ({ page }) => {
@@ -143,7 +143,7 @@ export const ContentPages: React.FC<ContentPagesProps> = ({ page }) => {
             </li>
             <li className="flex items-center space-x-2">
               <Check className="h-5 w-5 text-green-400" />
-              <span>Calendar integration</span>
+              <span>Voice interaction</span>
             </li>
           </ul>
           <button className="w-full bg-white text-indigo-600 py-3 rounded-lg hover:bg-gray-50 transition-colors font-semibold">
@@ -169,7 +169,7 @@ export const ContentPages: React.FC<ContentPagesProps> = ({ page }) => {
             </li>
             <li className="flex items-center space-x-2">
               <Check className="h-5 w-5 text-green-600" />
-              <span>Advanced integrations</span>
+              <span>Advanced analytics</span>
             </li>
             <li className="flex items-center space-x-2">
               <Check className="h-5 w-5 text-green-600" />
@@ -182,48 +182,6 @@ export const ContentPages: React.FC<ContentPagesProps> = ({ page }) => {
           </ul>
           <button className="w-full bg-gray-900 text-white py-3 rounded-lg hover:bg-gray-800 transition-colors">
             Contact Sales
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderIntegrations = () => (
-    <div className="space-y-16">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-6">
-          Calendar Integration
-        </h1>
-        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-          Connect MindMesh with Google Calendar to create a unified productivity ecosystem.
-        </p>
-      </div>
-
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-white border border-gray-200 rounded-2xl p-8">
-          <div className="flex items-center space-x-4 mb-6">
-            <Calendar className="h-12 w-12 text-blue-600" />
-            <div>
-              <h3 className="text-xl font-semibold text-gray-900">Google Calendar</h3>
-              <p className="text-gray-600">Sync tasks with calendar events</p>
-            </div>
-          </div>
-          <ul className="space-y-2 mb-6">
-            <li className="flex items-center space-x-2">
-              <Check className="h-4 w-4 text-green-600" />
-              <span>Import calendar events as tasks</span>
-            </li>
-            <li className="flex items-center space-x-2">
-              <Check className="h-4 w-4 text-green-600" />
-              <span>Update event status when tasks complete</span>
-            </li>
-            <li className="flex items-center space-x-2">
-              <Check className="h-4 w-4 text-green-600" />
-              <span>Customizable sync rules</span>
-            </li>
-          </ul>
-          <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
-            Connect Google Calendar
           </button>
         </div>
       </div>
@@ -262,14 +220,14 @@ export const ContentPages: React.FC<ContentPagesProps> = ({ page }) => {
             articles: ["Daily mood logging", "Reading mood trends", "Mood-productivity insights"]
           },
           {
-            title: "Calendar Integration",
-            description: "Connect with Google Calendar",
-            articles: ["Setting up Google Calendar", "Sync troubleshooting", "Managing sync rules"]
+            title: "Brain Dump",
+            description: "Capture and organize your thoughts",
+            articles: ["Using voice brain dumps", "AI categorization", "Processing thoughts"]
           },
           {
             title: "Troubleshooting",
             description: "Common issues and how to resolve them",
-            articles: ["Voice input not working", "Sync issues", "Performance problems"]
+            articles: ["Voice input not working", "AI not responding", "Performance problems"]
           }
         ].map((section, index) => (
           <div key={index} className="bg-white border border-gray-200 rounded-xl p-6">
@@ -497,7 +455,6 @@ export const ContentPages: React.FC<ContentPagesProps> = ({ page }) => {
             <li><strong>Google Gemini AI:</strong> For AI coaching responses (data processed securely)</li>
             <li><strong>ElevenLabs:</strong> For text-to-speech functionality</li>
             <li><strong>Supabase:</strong> For secure data storage and authentication</li>
-            <li><strong>Google Calendar:</strong> For calendar integration (only with your explicit consent)</li>
           </ul>
         </section>
 
@@ -517,8 +474,6 @@ export const ContentPages: React.FC<ContentPagesProps> = ({ page }) => {
       return renderFeatures();
     case 'pricing':
       return renderPricing();
-    case 'integrations':
-      return renderIntegrations();
     case 'help':
       return renderHelp();
     case 'contact':

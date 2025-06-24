@@ -46,32 +46,6 @@ export interface MoodEntry {
   created_at: string;
 }
 
-export interface UserIntegration {
-  id: string;
-  user_id: string;
-  integration_type: 'google_calendar';
-  access_token?: string;
-  refresh_token?: string;
-  expires_at?: string;
-  integration_data: any;
-  is_active: boolean;
-  last_sync_at?: string;
-  created_at: string;
-  updated_at: string;
-  sync_rules?: any;
-}
-
-export interface SyncMapping {
-  id: string;
-  user_id: string;
-  mindmesh_task_id?: string;
-  external_id: string;
-  integration_type: 'google_calendar';
-  sync_direction: 'import' | 'export' | 'bidirectional';
-  last_synced_at: string;
-  created_at: string;
-}
-
 // Auth helpers
 export const signUp = async (email: string, password: string, fullName?: string) => {
   const { data, error } = await supabase.auth.signUp({
@@ -90,17 +64,6 @@ export const signIn = async (email: string, password: string) => {
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
-  });
-  return { data, error };
-};
-
-export const signInWithGoogle = async () => {
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      scopes: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events',
-      redirectTo: `${window.location.origin}/auth/callback`,
-    },
   });
   return { data, error };
 };
@@ -216,95 +179,4 @@ export const updateProfile = async (updates: Partial<Profile>) => {
     .select()
     .single();
   return { data, error };
-};
-
-// Integration operations
-export const getUserIntegrations = async () => {
-  const { data, error } = await supabase
-    .from('user_integrations')
-    .select('*')
-    .eq('is_active', true)
-    .order('created_at', { ascending: false });
-  return { data, error };
-};
-
-export const createIntegration = async (integration: Omit<UserIntegration, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
-  const { user, error: userError } = await getCurrentUser();
-  
-  if (userError || !user) {
-    return { data: null, error: userError || new Error('User not authenticated') };
-  }
-
-  const { data, error } = await supabase
-    .from('user_integrations')
-    .insert([{ ...integration, user_id: user.id }])
-    .select()
-    .single();
-  return { data, error };
-};
-
-export const updateIntegration = async (id: string, updates: Partial<UserIntegration>) => {
-  const { data, error } = await supabase
-    .from('user_integrations')
-    .update(updates)
-    .eq('id', id)
-    .select()
-    .single();
-  return { data, error };
-};
-
-export const deleteIntegration = async (id: string) => {
-  const { error } = await supabase
-    .from('user_integrations')
-    .update({ is_active: false })
-    .eq('id', id);
-  return { error };
-};
-
-// Sync mapping operations
-export const getSyncMappings = async (integrationType?: 'google_calendar') => {
-  let query = supabase
-    .from('sync_mappings')
-    .select('*')
-    .order('created_at', { ascending: false });
-  
-  if (integrationType) {
-    query = query.eq('integration_type', integrationType);
-  }
-  
-  const { data, error } = await query;
-  return { data, error };
-};
-
-export const createSyncMapping = async (mapping: Omit<SyncMapping, 'id' | 'user_id' | 'created_at'>) => {
-  const { user, error: userError } = await getCurrentUser();
-  
-  if (userError || !user) {
-    return { data: null, error: userError || new Error('User not authenticated') };
-  }
-
-  const { data, error } = await supabase
-    .from('sync_mappings')
-    .insert([{ ...mapping, user_id: user.id }])
-    .select()
-    .single();
-  return { data, error };
-};
-
-export const updateSyncMapping = async (id: string, updates: Partial<SyncMapping>) => {
-  const { data, error } = await supabase
-    .from('sync_mappings')
-    .update(updates)
-    .eq('id', id)
-    .select()
-    .single();
-  return { data, error };
-};
-
-export const deleteSyncMapping = async (id: string) => {
-  const { error } = await supabase
-    .from('sync_mappings')
-    .delete()
-    .eq('id', id);
-  return { error };
 };

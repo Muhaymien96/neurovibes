@@ -4,10 +4,9 @@ import { FocusMode } from '../sections/FocusMode';
 import { BrainDump } from '../BrainDump';
 import { TaskManager } from '../TaskManager';
 import { MoodTracker } from '../MoodTracker';
-import { IntegrationsManager } from '../IntegrationsManager';
 import { ProfileSettings } from '../ProfileSettings';
 
-type ActiveTab = 'focus' | 'tasks' | 'mood' | 'reminders' | 'integrations' | 'braindump' | 'profile';
+type ActiveTab = 'focus' | 'tasks' | 'mood' | 'braindump' | 'profile';
 
 interface MainContentProps {
   activeTab: ActiveTab;
@@ -22,7 +21,6 @@ export const MainContent: React.FC<MainContentProps> = ({ activeTab, user }) => 
         {activeTab === 'braindump' && <BrainDump />}
         {activeTab === 'tasks' && <TaskManager />}
         {activeTab === 'mood' && <MoodTracker />}
-        {activeTab === 'integrations' && <IntegrationsManager />}
         {activeTab === 'profile' && <ProfileSettings />}
       </div>
     </main>

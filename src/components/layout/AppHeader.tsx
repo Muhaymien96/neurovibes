@@ -3,13 +3,12 @@ import { User } from '@supabase/supabase-js';
 import { Brain, Sparkles, User as UserIcon, LogOut } from 'lucide-react';
 import { useAuthStore } from '../../store';
 
-type ActiveTab = 'focus' | 'tasks' | 'mood' | 'reminders' | 'integrations' | 'braindump' | 'profile';
-type ContentPage = 'features' | 'pricing' | 'integrations' | 'help' | 'contact' | 'privacy';
+type ActiveTab = 'focus' | 'tasks' | 'mood' | 'braindump' | 'profile';
+type ContentPage = 'features' | 'pricing' | 'help' | 'contact' | 'privacy';
 
 interface AppHeaderProps {
   activeTab?: ActiveTab;
   setActiveTab?: (tab: ActiveTab) => void;
-  reminders?: any[];
   user?: User | null;
   isAuthenticated: boolean;
   onPageNavigation?: (page: ContentPage) => void;
@@ -21,7 +20,6 @@ interface AppHeaderProps {
 export const AppHeader: React.FC<AppHeaderProps> = ({
   activeTab,
   setActiveTab,
-  reminders = [],
   user,
   isAuthenticated,
   onPageNavigation,
@@ -95,14 +93,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                   }`}
                 >
                   Mood
-                </button>
-                <button
-                  onClick={() => setActiveTab?.('integrations')}
-                  className={`transition-colors font-medium ${
-                    activeTab === 'integrations' ? 'text-indigo-600' : 'text-gray-600 hover:text-indigo-600'
-                  }`}
-                >
-                  Calendar
                 </button>
                 <div className="flex items-center space-x-3">
                   <button
