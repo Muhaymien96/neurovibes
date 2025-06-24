@@ -8,14 +8,16 @@ const corsHeaders = {
 
 interface TaskBreakdownRequest {
   input: string;
-  type: 'task' | 'brain_dump' | 'voice_note';
+  type: 'task' | 'brain_dump' | 'voice_note' | 'reframing_advice';
   context?: {
     existing_tasks?: string[];
     mood_score?: number;
     energy_level?: number;
     user_id?: string;
     include_historical_data?: boolean;
-    workload_breakdown?: boolean; // New flag for workload breakdown
+    workload_breakdown?: boolean;
+    focus_mode_active?: boolean;
+    is_stuck_request?: boolean;
   };
 }
 
@@ -181,6 +183,66 @@ async function getUserHistoricalData(userId: string): Promise<UserHistoricalData
   };
 }
 
+function createReframingAdvicePrompt(request: TaskBreakdownRequest, historicalData?: UserHistoricalData): string {
+  const { input, context } = request;
+  
+  let prompt = `You are a compassionate AI coach specializing in helping neurodivergent individuals when they feel stuck, blocked, or overwhelmed. Your role is to provide gentle reframing advice and practical next steps.
+
+USER'S STUCK REQUEST:
+"${input}"
+
+CURRENT CONTEXT:
+- Focus mode active: ${context?.focus_mode_active ? 'Yes' : 'No'}
+- Current energy level: ${context?.energy_level || 'Unknown'}/10
+- Current mood: ${context?.mood_score || 'Unknown'}/10`;
+
+  if (historicalData) {
+    prompt += `\n\nHISTORICAL PATTERNS:`;
+    
+    if (historicalData.common_struggles.length > 0) {
+      prompt += `\nCommon challenges: ${historicalData.common_struggles.join(', ')}`;
+    }
+
+    if (historicalData.productive_hours.length > 0) {
+      prompt += `\nMost productive hours: ${historicalData.productive_hours.map(h => `${h}:00`).join(', ')}`;
+    }
+
+    if (historicalData.task_completion_stats) {
+      prompt += `\nTask completion rate: ${(historicalData.task_completion_stats.completion_rate * 100).toFixed(1)}%`;
+    }
+  }
+
+  prompt += `
+
+Please provide reframing advice and practical next steps. Respond with a JSON object containing:
+{
+  "coaching_response": "A gentle, reframing response that validates their feelings and offers a new perspective (2-3 sentences)",
+  "recommended_strategies": ["Array of 2-3 specific, actionable strategies to help them get unstuck"],
+  "encouragement": "A warm, supportive message that builds confidence and reminds them of their capabilities",
+  "personalized_insights": ["Array of insights based on their patterns, if available"]
+}
+
+GUIDELINES FOR REFRAMING ADVICE:
+- Validate their feelings first ("It's completely normal to feel stuck...")
+- Reframe the situation positively ("This feeling means you care about doing well...")
+- Offer perspective ("Remember, being stuck is temporary...")
+- Provide specific, small next steps
+- Reference their past successes when possible
+- Use neurodivergent-friendly language
+- Focus on progress, not perfection
+- Suggest breaking things down into smaller pieces
+- Remind them of their strengths
+
+EXAMPLES OF GOOD REFRAMING:
+- "Feeling stuck often means your brain is processing complex information. Let's break this down into one tiny step."
+- "This overwhelm shows how much you care. Let's channel that energy into one small action."
+- "Your brain works differently, not wrong. Let's find an approach that works with your natural patterns."
+
+Respond ONLY with valid JSON, no additional text.`;
+
+  return prompt;
+}
+
 function createWorkloadBreakdownPrompt(request: TaskBreakdownRequest, historicalData?: UserHistoricalData): string {
   const { input, context } = request;
   
@@ -296,6 +358,9 @@ User Input: "${input}"`;
   if (context?.existing_tasks?.length) {
     basePrompt += `\nExisting Tasks: ${context.existing_tasks.join(', ')}`;
   }
+  if (context?.focus_mode_active) {
+    basePrompt += `\nFocus Mode: Active`;
+  }
 
   // Add historical context if available
   if (historicalData) {
@@ -354,6 +419,7 @@ Guidelines:
 - Leverage historical patterns to provide personalized insights
 - Reference their productive hours and past successes when relevant
 - Address their common challenges with specific strategies
+- If in focus mode, provide focused, concise guidance
 
 Examples of enhanced coaching language:
 - "Based on your patterns, you tend to be most productive around [time], so this might be a good time to tackle this"
@@ -396,13 +462,16 @@ serve(async (req) => {
       }
     }
 
-    // Check if this is a workload breakdown request
-    const isWorkloadBreakdown = context?.workload_breakdown === true;
+    // Create the appropriate prompt based on request type
+    let prompt: string;
     
-    // Create the appropriate prompt
-    const prompt = isWorkloadBreakdown 
-      ? createWorkloadBreakdownPrompt({ input, type, context }, historicalData)
-      : createEnhancedCoachingPrompt({ input, type, context }, historicalData);
+    if (type === 'reframing_advice' || context?.is_stuck_request) {
+      prompt = createReframingAdvicePrompt({ input, type, context }, historicalData);
+    } else if (context?.workload_breakdown === true) {
+      prompt = createWorkloadBreakdownPrompt({ input, type, context }, historicalData);
+    } else {
+      prompt = createEnhancedCoachingPrompt({ input, type, context }, historicalData);
+    }
 
     // Call Gemini API
     const geminiResponse = await callGeminiAPI(prompt);
@@ -418,7 +487,17 @@ serve(async (req) => {
       console.error('Raw response:', geminiResponse);
       
       // Fallback response if JSON parsing fails
-      if (isWorkloadBreakdown) {
+      if (type === 'reframing_advice' || context?.is_stuck_request) {
+        parsedResponse = {
+          coaching_response: "I hear that you're feeling stuck. This is completely normal and shows that you care about doing well.",
+          encouragement: "Remember, feeling stuck is temporary. You have the strength to work through this, one small step at a time.",
+          recommended_strategies: [
+            "Take a 5-minute break to reset your mind",
+            "Write down just one tiny next step you could take",
+            "Remember a time when you overcame a similar challenge"
+          ]
+        };
+      } else if (context?.workload_breakdown === true) {
         parsedResponse = {
           coaching_response: "I can see this is a complex workload that needs to be broken down into manageable pieces.",
           suggested_tasks: [

@@ -7,6 +7,48 @@
   --text-size: 16px;
   --line-height: 1.5;
   --animation-duration: 0.2s;
+  
+  /* Mood-responsive color variables */
+  --primary-color: #4f46e5;
+  --accent-color: #7c3aed;
+  --background-color: #f8fafc;
+  --text-color: #1f2937;
+}
+
+/* Mood theme classes */
+.mood-theme-energetic {
+  --primary-color: #059669;
+  --accent-color: #10b981;
+  --background-color: #ecfdf5;
+  --text-color: #064e3b;
+}
+
+.mood-theme-calm {
+  --primary-color: #0ea5e9;
+  --accent-color: #06b6d4;
+  --background-color: #f0f9ff;
+  --text-color: #0c4a6e;
+}
+
+.mood-theme-focused {
+  --primary-color: #7c3aed;
+  --accent-color: #8b5cf6;
+  --background-color: #faf5ff;
+  --text-color: #581c87;
+}
+
+.mood-theme-low-energy {
+  --primary-color: #f59e0b;
+  --accent-color: #f97316;
+  --background-color: #fffbeb;
+  --text-color: #92400e;
+}
+
+.mood-theme-stressed {
+  --primary-color: #dc2626;
+  --accent-color: #ef4444;
+  --background-color: #fef2f2;
+  --text-color: #991b1b;
 }
 
 /* High contrast mode */
@@ -15,6 +57,10 @@
   --tw-text-gray-900: #ffffff;
   --tw-text-gray-600: #cccccc;
   --tw-border-gray-200: #ffffff;
+  --primary-color: #ffffff;
+  --accent-color: #ffffff;
+  --background-color: #000000;
+  --text-color: #ffffff;
 }
 
 .high-contrast * {
@@ -51,7 +97,7 @@
 
 .minimalist .bg-gradient-to-br,
 .minimalist .bg-gradient-to-r {
-  background: #ffffff !important;
+  background: var(--background-color) !important;
 }
 
 .minimalist .border-2 {
@@ -100,7 +146,7 @@ button:focus,
 input:focus,
 select:focus,
 textarea:focus {
-  outline: 2px solid #4f46e5;
+  outline: 2px solid var(--primary-color);
   outline-offset: 2px;
 }
 
@@ -108,6 +154,8 @@ textarea:focus {
 .reading-mode {
   font-size: var(--text-size);
   line-height: var(--line-height);
+  background-color: var(--background-color);
+  color: var(--text-color);
 }
 
 /* Animation speed control */
@@ -119,6 +167,27 @@ textarea:focus {
 .animation-fast * {
   animation-duration: calc(var(--animation-duration) * 0.5) !important;
   transition-duration: calc(var(--animation-duration) * 0.5) !important;
+}
+
+/* Mood-responsive primary colors */
+.bg-primary {
+  background-color: var(--primary-color);
+}
+
+.text-primary {
+  color: var(--primary-color);
+}
+
+.border-primary {
+  border-color: var(--primary-color);
+}
+
+.bg-accent {
+  background-color: var(--accent-color);
+}
+
+.text-accent {
+  color: var(--accent-color);
 }
 
 /* Ensure proper contrast ratios */
@@ -144,4 +213,27 @@ textarea:focus {
 
 .bg-red-50 {
   color: #991b1b;
+}
+
+/* Notification styles */
+.notification-enter {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.notification-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.notification-exit {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.notification-exit-active {
+  opacity: 0;
+  transform: translateX(100%);
+  transition: opacity 300ms, transform 300ms;
 }

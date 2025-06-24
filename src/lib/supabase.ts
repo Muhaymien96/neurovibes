@@ -47,6 +47,32 @@ export interface MoodEntry {
   created_at: string;
 }
 
+export interface Reminder {
+  id: string;
+  user_id: string;
+  title: string;
+  description?: string;
+  remind_at: string;
+  snooze_duration_minutes?: number;
+  original_reminder_id?: string;
+  is_dismissed: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FocusSession {
+  id: string;
+  host_id: string;
+  viewer_id?: string;
+  session_link_uuid: string;
+  current_task?: string;
+  mood?: string;
+  timer_state: any;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // Auth helpers
 export const signUp = async (email: string, password: string, fullName?: string) => {
   const { data, error } = await supabase.auth.signUp({
@@ -178,6 +204,85 @@ export const updateProfile = async (updates: Partial<Profile>) => {
     .update(updates)
     .eq('id', (await getCurrentUser()).user?.id)
     .select()
+    .single();
+  return { data, error };
+};
+
+// Reminder operations
+export const createReminder = async (reminder: Omit<Reminder, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+  const { user, error: userError } = await getCurrentUser();
+  
+  if (userError || !user) {
+    return { data: null, error: userError || new Error('User not authenticated') };
+  }
+
+  const { data, error } = await supabase
+    .from('reminders')
+    .insert([{ ...reminder, user_id: user.id }])
+    .select()
+    .single();
+  return { data, error };
+};
+
+export const getReminders = async () => {
+  const { data, error } = await supabase
+    .from('reminders')
+    .select('*')
+    .eq('is_dismissed', false)
+    .order('remind_at', { ascending: true });
+  return { data, error };
+};
+
+export const updateReminder = async (id: string, updates: Partial<Reminder>) => {
+  const { data, error } = await supabase
+    .from('reminders')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+  return { data, error };
+};
+
+export const deleteReminder = async (id: string) => {
+  const { error } = await supabase
+    .from('reminders')
+    .delete()
+    .eq('id', id);
+  return { error };
+};
+
+// Focus session operations
+export const createFocusSession = async (session: Omit<FocusSession, 'id' | 'created_at' | 'updated_at' | 'session_link_uuid'>) => {
+  const { user, error: userError } = await getCurrentUser();
+  
+  if (userError || !user) {
+    return { data: null, error: userError || new Error('User not authenticated') };
+  }
+
+  const { data, error } = await supabase
+    .from('focus_sessions')
+    .insert([{ ...session, host_id: user.id }])
+    .select()
+    .single();
+  return { data, error };
+};
+
+export const updateFocusSession = async (id: string, updates: Partial<FocusSession>) => {
+  const { data, error } = await supabase
+    .from('focus_sessions')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+  return { data, error };
+};
+
+export const getFocusSessionByLink = async (linkUuid: string) => {
+  const { data, error } = await supabase
+    .from('focus_sessions')
+    .select('*')
+    .eq('session_link_uuid', linkUuid)
+    .eq('is_active', true)
     .single();
   return { data, error };
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User } from '@supabase/supabase-js';
 import { 
   Brain, 
@@ -13,12 +13,17 @@ import {
   Volume2,
   VolumeX,
   Bell,
-  BellOff
+  BellOff,
+  Share2,
+  Copy,
+  UserPlus,
+  Eye
 } from 'lucide-react';
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 import { useElevenLabsTTS } from '../../hooks/useElevenLabsTTS';
 import { useAICoach } from '../../hooks/useAICoach';
 import { useAuthStore, useMoodStore, useSettingsStore } from '../../store';
+import { createFocusSession, updateFocusSession, supabase } from '../../lib/supabase';
 import { AICoachResponse } from '../AICoachResponse';
 import { VoiceControls } from '../ui/VoiceControls';
 import { QuickActions } from '../ui/QuickActions';
@@ -45,6 +50,13 @@ export const FocusMode: React.FC<FocusModeProps> = ({ user }) => {
   const [currentPhase, setCurrentPhase] = useState<'work' | 'break'>('work');
   const [focusModeActive, setFocusModeActive] = useState(false);
   const [notificationsBlocked, setNotificationsBlocked] = useState(false);
+  
+  // Focus Buddy State
+  const [focusBuddyEnabled, setFocusBuddyEnabled] = useState(false);
+  const [buddyType, setBuddyType] = useState<'ai' | 'realtime'>('ai');
+  const [currentSession, setCurrentSession] = useState<any>(null);
+  const [sessionLink, setSessionLink] = useState('');
+  const [aiEncouragementInterval, setAiEncouragementInterval] = useState<NodeJS.Timeout | null>(null);
   
   const { 
     isListening, 
@@ -91,6 +103,35 @@ export const FocusMode: React.FC<FocusModeProps> = ({ user }) => {
     return () => clearInterval(interval);
   }, [isTimerRunning, timeLeft, currentPhase, timerDuration, breakDuration, speak]);
 
+  // AI Buddy encouragement effect
+  useEffect(() => {
+    if (focusBuddyEnabled && buddyType === 'ai' && focusModeActive) {
+      const encouragements = [
+        "You're doing great! Keep going!",
+        "Still here with you. You've got this!",
+        "Nice focus! You're making progress.",
+        "I believe in you. One step at a time.",
+        "You're stronger than you think. Keep pushing!"
+      ];
+      
+      const interval = setInterval(() => {
+        const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
+        speak(randomEncouragement);
+      }, 5 * 60 * 1000); // Every 5 minutes
+      
+      setAiEncouragementInterval(interval);
+      
+      return () => {
+        if (interval) clearInterval(interval);
+      };
+    } else {
+      if (aiEncouragementInterval) {
+        clearInterval(aiEncouragementInterval);
+        setAiEncouragementInterval(null);
+      }
+    }
+  }, [focusBuddyEnabled, buddyType, focusModeActive, speak]);
+
   // Handle completed speech recognition
   useEffect(() => {
     if (transcript && !isListening && transcript !== lastProcessedTranscript) {
@@ -106,18 +147,23 @@ export const FocusMode: React.FC<FocusModeProps> = ({ user }) => {
       return;
     }
 
+    // Check for "I'm stuck" or similar phrases
+    const stuckPhrases = ['stuck', 'blocked', 'confused', 'lost', 'overwhelmed'];
+    const isStuckRequest = stuckPhrases.some(phrase => input.toLowerCase().includes(phrase));
+
     // Get current energy level from latest mood entry
     const latestMood = moodEntries[0];
     const energyLevel = latestMood?.energy_level || 5;
 
     const response = await getCoachingResponse({
       input,
-      type: 'voice_note',
+      type: isStuckRequest ? 'reframing_advice' : 'voice_note',
       context: {
         user_id: authUser?.id,
         include_historical_data: true,
         energy_level: energyLevel,
         focus_mode_active: focusModeActive,
+        is_stuck_request: isStuckRequest,
       }
     });
 
@@ -206,6 +252,67 @@ export const FocusMode: React.FC<FocusModeProps> = ({ user }) => {
     setNotificationsBlocked(false);
   };
 
+  const startRealTimeBuddy = async () => {
+    if (!authUser) return;
+    
+    try {
+      const sessionData = {
+        current_task: 'Focus session',
+        mood: moodEntries[0] ? `${moodEntries[0].mood_score}/10` : 'Unknown',
+        timer_state: {
+          duration: timerDuration,
+          timeLeft,
+          isRunning: isTimerRunning,
+          phase: currentPhase
+        },
+        is_active: true
+      };
+      
+      const { data, error } = await createFocusSession(sessionData);
+      
+      if (error) {
+        console.error('Error creating focus session:', error);
+        return;
+      }
+      
+      if (data) {
+        setCurrentSession(data);
+        setSessionLink(`${window.location.origin}/focus-buddy/${data.session_link_uuid}`);
+        
+        // Set up real-time updates
+        const channel = supabase.channel(`focus-session-${data.id}`)
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'focus_sessions',
+            filter: `id=eq.${data.id}`
+          }, (payload) => {
+            console.log('Focus session updated:', payload);
+          })
+          .subscribe();
+      }
+    } catch (error) {
+      console.error('Error starting real-time buddy:', error);
+    }
+  };
+
+  const stopRealTimeBuddy = async () => {
+    if (currentSession) {
+      try {
+        await updateFocusSession(currentSession.id, { is_active: false });
+        setCurrentSession(null);
+        setSessionLink('');
+      } catch (error) {
+        console.error('Error stopping real-time buddy:', error);
+      }
+    }
+  };
+
+  const copySessionLink = () => {
+    navigator.clipboard.writeText(sessionLink);
+    // Could add a toast notification here
+  };
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -236,6 +343,96 @@ export const FocusMode: React.FC<FocusModeProps> = ({ user }) => {
           Your AI coach powered by Gemini is ready to help. Use the Pomodoro timer to stay focused, 
           or speak naturally about what you're working on.
         </p>
+      </div>
+
+      {/* Focus Buddy Toggle */}
+      <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-6 rounded-2xl border border-purple-100">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-bold text-purple-900 flex items-center space-x-2">
+            <Users className="h-5 w-5" />
+            <span>Focus Buddy</span>
+          </h3>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={focusBuddyEnabled}
+              onChange={(e) => setFocusBuddyEnabled(e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+          </label>
+        </div>
+        
+        {focusBuddyEnabled && (
+          <div className="space-y-4">
+            <div className="flex space-x-4">
+              <label className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  name="buddyType"
+                  value="ai"
+                  checked={buddyType === 'ai'}
+                  onChange={(e) => setBuddyType(e.target.value as 'ai')}
+                  className="text-purple-600"
+                />
+                <span className="text-purple-800">AI Buddy (Encouragement every 5-10 mins)</span>
+              </label>
+              <label className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  name="buddyType"
+                  value="realtime"
+                  checked={buddyType === 'realtime'}
+                  onChange={(e) => setBuddyType(e.target.value as 'realtime')}
+                  className="text-purple-600"
+                />
+                <span className="text-purple-800">Real-Time Buddy (Share session)</span>
+              </label>
+            </div>
+            
+            {buddyType === 'realtime' && (
+              <div className="bg-white/70 p-4 rounded-lg border border-purple-200">
+                {!currentSession ? (
+                  <button
+                    onClick={startRealTimeBuddy}
+                    className="flex items-center space-x-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    <span>Start Shared Session</span>
+                  </button>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <Eye className="h-4 w-4 text-purple-600" />
+                      <span className="text-purple-800 font-medium">Session Active</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="text"
+                        value={sessionLink}
+                        readOnly
+                        className="flex-grow px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm"
+                      />
+                      <button
+                        onClick={copySessionLink}
+                        className="flex items-center space-x-1 bg-purple-100 text-purple-700 px-3 py-2 rounded-lg hover:bg-purple-200 transition-colors"
+                      >
+                        <Copy className="h-4 w-4" />
+                        <span>Copy</span>
+                      </button>
+                    </div>
+                    <button
+                      onClick={stopRealTimeBuddy}
+                      className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                      End Session
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Pomodoro Timer Section */}
@@ -378,10 +575,14 @@ export const FocusMode: React.FC<FocusModeProps> = ({ user }) => {
               <span className="text-blue-600">Break suggestions based on energy</span>
             </div>
             
-            <div className="flex items-center space-x-2">
-              <Users className="h-4 w-4 text-purple-600" />
-              <span className="text-purple-600">Body doubling (coming soon)</span>
-            </div>
+            {focusBuddyEnabled && (
+              <div className="flex items-center space-x-2">
+                <Users className="h-4 w-4 text-purple-600" />
+                <span className="text-purple-600">
+                  {buddyType === 'ai' ? 'AI Buddy Active' : 'Real-Time Buddy'}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -454,6 +655,11 @@ export const FocusMode: React.FC<FocusModeProps> = ({ user }) => {
                 <p className="text-indigo-800 italic leading-relaxed">
                   Hi! I'm your AI coach powered by Gemini. I'm here to help you focus and break down overwhelming tasks. 
                   Try saying something like "I'm feeling overwhelmed" or "Help me start this project".
+                  {focusBuddyEnabled && buddyType === 'ai' && (
+                    <span className="block mt-2 text-purple-700">
+                      🤝 Focus Buddy is active! I'll check in with encouragement every few minutes.
+                    </span>
+                  )}
                 </p>
               </div>
             </div>

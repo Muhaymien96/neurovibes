@@ -2,13 +2,15 @@ import { useState } from 'react';
 
 interface AICoachRequest {
   input: string;
-  type: 'task' | 'brain_dump' | 'voice_note';
+  type: 'task' | 'brain_dump' | 'voice_note' | 'reframing_advice';
   context?: {
     existing_tasks?: string[];
     mood_score?: number;
     energy_level?: number;
     user_id?: string;
     include_historical_data?: boolean;
+    focus_mode_active?: boolean;
+    is_stuck_request?: boolean;
   };
 }
 
@@ -68,6 +70,7 @@ export const useAICoach = () => {
     productivity_patterns: string[];
     mood_correlations: string[];
     task_completion_insights: string[];
+    personalized_recommendations: string[];
   } | null> => {
     setLoading(true);
     setError(null);

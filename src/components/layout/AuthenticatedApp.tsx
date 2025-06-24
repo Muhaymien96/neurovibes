@@ -5,7 +5,8 @@ import { AppFooter } from './AppFooter';
 import { MainContent } from './MainContent';
 import { CalmingTools } from '../CalmingTools';
 import { AuthModal } from '../AuthModal';
-import { useSettingsStore } from '../../store';
+import { NotificationCenter } from '../NotificationCenter';
+import { useSettingsStore, useMoodStore } from '../../store';
 
 type ActiveTab = 'focus' | 'tasks' | 'mood' | 'braindump' | 'profile' | 'calming';
 
@@ -20,8 +21,9 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ user }) => {
   const [showCalmingModal, setShowCalmingModal] = useState(false);
   
   const { appearance } = useSettingsStore();
+  const { entries: moodEntries } = useMoodStore();
 
-  // Apply global styles based on settings
+  // Apply global styles based on settings and mood
   useEffect(() => {
     const root = document.documentElement;
     
@@ -32,14 +34,14 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ user }) => {
       large: '18px',
       xlarge: '20px'
     };
-    root.style.fontSize = textSizeMap[appearance.text_size];
+    root.style.setProperty('--text-size', textSizeMap[appearance.text_size]);
     
     // Line spacing
     const lineSpacingMap = {
       normal: '1.5',
       wide: '1.8'
     };
-    root.style.lineHeight = lineSpacingMap[appearance.line_spacing];
+    root.style.setProperty('--line-height', lineSpacingMap[appearance.line_spacing]);
     
     // Font preference
     if (appearance.font_preference === 'dyslexia_friendly') {
@@ -75,7 +77,37 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ user }) => {
     } else {
       root.classList.remove('colorblind-friendly');
     }
-  }, [appearance]);
+
+    // Animation speed
+    root.classList.remove('animation-slow', 'animation-fast');
+    if (appearance.animation_speed === 'slow') {
+      root.classList.add('animation-slow');
+    } else if (appearance.animation_speed === 'fast') {
+      root.classList.add('animation-fast');
+    }
+
+    // Mood-responsive colors
+    if (appearance.mood_responsive_colors && moodEntries.length > 0) {
+      const latestMood = moodEntries[0];
+      const avgMood = (latestMood.mood_score + latestMood.energy_level + latestMood.focus_level) / 3;
+      
+      // Remove existing mood theme classes
+      root.classList.remove('mood-theme-energetic', 'mood-theme-calm', 'mood-theme-focused', 'mood-theme-low-energy', 'mood-theme-stressed');
+      
+      // Apply mood-based theme
+      if (latestMood.energy_level >= 8 && latestMood.mood_score >= 7) {
+        root.classList.add('mood-theme-energetic');
+      } else if (latestMood.focus_level >= 8) {
+        root.classList.add('mood-theme-focused');
+      } else if (avgMood >= 6 && latestMood.mood_score >= 6) {
+        root.classList.add('mood-theme-calm');
+      } else if (latestMood.energy_level <= 3 || avgMood <= 4) {
+        root.classList.add('mood-theme-low-energy');
+      } else if (latestMood.mood_score <= 3) {
+        root.classList.add('mood-theme-stressed');
+      }
+    }
+  }, [appearance, moodEntries]);
 
   const renderMainContent = () => {
     if (activeTab === 'calming') {
@@ -103,6 +135,9 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ user }) => {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
         </svg>
       </button>
+
+      {/* Notification Center */}
+      <NotificationCenter />
 
       {/* Calming Tools Modal */}
       {showCalmingModal && (
