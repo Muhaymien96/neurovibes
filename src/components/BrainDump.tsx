@@ -4,18 +4,39 @@ import {
   Mic, 
   Type, 
   Send, 
+  Wifi, 
+  WifiOff, 
+  Clock, 
+  CheckCircle, 
+  AlertCircle,
   Trash2,
+  RefreshCw,
+  Cloud,
+  CloudOff,
+  Target,
+  FileText,
+  Heart,
+  Plus,
   X
 } from 'lucide-react';
 import { useBrainDump } from '../hooks/useBrainDump';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
+import { useAuth } from '../hooks/useAuth';
 
 export const BrainDump: React.FC = () => {
+  const { isAuthenticated } = useAuth();
   const {
     entries,
     addEntry,
     deleteEntry,
     clearAllEntries,
+    processUnprocessedEntries,
+    syncToCloud,
+    getProcessedResults,
+    getStats,
+    processing,
+    syncing,
+    isOnline,
   } = useBrainDump();
 
   const {
@@ -28,7 +49,11 @@ export const BrainDump: React.FC = () => {
 
   const [inputMode, setInputMode] = useState<'text' | 'voice'>('text');
   const [textInput, setTextInput] = useState('');
+  const [showResults, setShowResults] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const stats = getStats();
+  const processedResults = getProcessedResults();
 
   // Handle voice input completion
   useEffect(() => {
@@ -76,6 +101,32 @@ export const BrainDump: React.FC = () => {
     return date.toLocaleDateString();
   };
 
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'action':
+        return <Target className="h-4 w-4 text-red-600" />;
+      case 'note':
+        return <FileText className="h-4 w-4 text-blue-600" />;
+      case 'reflection':
+        return <Heart className="h-4 w-4 text-purple-600" />;
+      default:
+        return <Brain className="h-4 w-4 text-gray-600" />;
+    }
+  };
+
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case 'action':
+        return 'bg-red-50 border-red-200';
+      case 'note':
+        return 'bg-blue-50 border-blue-200';
+      case 'reflection':
+        return 'bg-purple-50 border-purple-200';
+      default:
+        return 'bg-gray-50 border-gray-200';
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -84,8 +135,61 @@ export const BrainDump: React.FC = () => {
           <Brain className="h-6 w-6 text-indigo-600" />
           <div>
             <h3 className="text-2xl font-bold text-gray-900">Brain Dump</h3>
-            <p className="text-gray-600">Capture thoughts quickly and easily</p>
+            <p className="text-gray-600">Capture thoughts anytime, AI organizes them for you</p>
           </div>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          {/* Online Status */}
+          <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs ${
+            isOnline ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+          }`}>
+            {isOnline ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+            <span>{isOnline ? 'Online' : 'Offline'}</span>
+          </div>
+
+          {/* Sync Status */}
+          {isAuthenticated && (
+            <button
+              onClick={syncToCloud}
+              disabled={syncing || !isOnline}
+              className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs transition-colors ${
+                stats.unsynced > 0 
+                  ? 'bg-orange-100 text-orange-800 hover:bg-orange-200' 
+                  : 'bg-green-100 text-green-800'
+              }`}
+              title={`${stats.unsynced} unsynced entries`}
+            >
+              {syncing ? (
+                <RefreshCw className="h-3 w-3 animate-spin" />
+              ) : stats.unsynced > 0 ? (
+                <CloudOff className="h-3 w-3" />
+              ) : (
+                <Cloud className="h-3 w-3" />
+              )}
+              <span>{syncing ? 'Syncing...' : stats.unsynced > 0 ? `${stats.unsynced} pending` : 'Synced'}</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white p-4 rounded-lg border border-gray-200">
+          <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+          <div className="text-sm text-gray-600">Total Entries</div>
+        </div>
+        <div className="bg-white p-4 rounded-lg border border-gray-200">
+          <div className="text-2xl font-bold text-indigo-600">{stats.processed}</div>
+          <div className="text-sm text-gray-600">Processed</div>
+        </div>
+        <div className="bg-white p-4 rounded-lg border border-gray-200">
+          <div className="text-2xl font-bold text-orange-600">{stats.unprocessed}</div>
+          <div className="text-sm text-gray-600">Pending</div>
+        </div>
+        <div className="bg-white p-4 rounded-lg border border-gray-200">
+          <div className="text-2xl font-bold text-green-600">{stats.processingRate}%</div>
+          <div className="text-sm text-gray-600">Processed</div>
         </div>
       </div>
 
@@ -117,6 +221,17 @@ export const BrainDump: React.FC = () => {
               <span>Voice</span>
             </button>
           </div>
+
+          {isAuthenticated && stats.unprocessed > 0 && isOnline && (
+            <button
+              onClick={processUnprocessedEntries}
+              disabled={processing}
+              className="flex items-center space-x-2 text-sm text-indigo-600 hover:text-indigo-700"
+            >
+              <RefreshCw className={`h-4 w-4 ${processing ? 'animate-spin' : ''}`} />
+              <span>Process {stats.unprocessed} pending</span>
+            </button>
+          )}
         </div>
 
         {inputMode === 'text' ? (
@@ -175,15 +290,33 @@ export const BrainDump: React.FC = () => {
             </div>
           </div>
         )}
+
+        {!isOnline && (
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <WifiOff className="h-4 w-4 text-yellow-600" />
+              <p className="text-yellow-800 text-sm">
+                You're offline. Entries will be saved locally and processed when you're back online.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Recent Raw Entries */}
-      {entries.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h4 className="text-lg font-semibold text-gray-900">
-              Recent Entries ({entries.length})
-            </h4>
+      {/* Toggle Results View */}
+      {stats.processed > 0 && (
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => setShowResults(!showResults)}
+            className="flex items-center space-x-2 text-indigo-600 hover:text-indigo-700"
+          >
+            <span className="font-medium">
+              {showResults ? 'Hide' : 'Show'} Processed Results ({stats.processed})
+            </span>
+            <Plus className={`h-4 w-4 transform transition-transform ${showResults ? 'rotate-45' : ''}`} />
+          </button>
+
+          {entries.length > 0 && (
             <button
               onClick={clearAllEntries}
               className="flex items-center space-x-2 text-red-600 hover:text-red-700 text-sm"
@@ -191,7 +324,154 @@ export const BrainDump: React.FC = () => {
               <Trash2 className="h-4 w-4" />
               <span>Clear All</span>
             </button>
-          </div>
+          )}
+        </div>
+      )}
+
+      {/* Processed Results */}
+      {showResults && (
+        <div className="grid gap-6">
+          {/* Actions */}
+          {processedResults.actions.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
+                <Target className="h-5 w-5 text-red-600" />
+                <span>Actions ({processedResults.actions.length})</span>
+              </h4>
+              <div className="space-y-3">
+                {processedResults.actions.map((entry) => (
+                  <div key={entry.id} className={`p-4 rounded-lg border ${getCategoryColor('action')}`}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-grow">
+                        <h5 className="font-medium text-gray-900 mb-1">
+                          {entry.aiResult?.title}
+                        </h5>
+                        <p className="text-gray-700 text-sm mb-2">
+                          {entry.aiResult?.summary}
+                        </p>
+                        {entry.aiResult?.suggested_actions && (
+                          <ul className="text-sm text-gray-600 space-y-1">
+                            {entry.aiResult.suggested_actions.map((action, index) => (
+                              <li key={index} className="flex items-start space-x-2">
+                                <span className="text-red-500">•</span>
+                                <span>{action}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        <div className="flex items-center space-x-4 mt-3 text-xs text-gray-500">
+                          <span>{formatTimestamp(entry.timestamp)}</span>
+                          {entry.aiResult?.priority && (
+                            <span className={`px-2 py-1 rounded-full ${
+                              entry.aiResult.priority === 'high' ? 'bg-red-100 text-red-800' :
+                              entry.aiResult.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-green-100 text-green-800'
+                            }`}>
+                              {entry.aiResult.priority} priority
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => deleteEntry(entry.id)}
+                        className="p-1 text-gray-400 hover:text-red-600 rounded"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Notes */}
+          {processedResults.notes.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
+                <FileText className="h-5 w-5 text-blue-600" />
+                <span>Notes ({processedResults.notes.length})</span>
+              </h4>
+              <div className="space-y-3">
+                {processedResults.notes.map((entry) => (
+                  <div key={entry.id} className={`p-4 rounded-lg border ${getCategoryColor('note')}`}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-grow">
+                        <h5 className="font-medium text-gray-900 mb-1">
+                          {entry.aiResult?.title}
+                        </h5>
+                        <p className="text-gray-700 text-sm mb-2">
+                          {entry.aiResult?.summary}
+                        </p>
+                        {entry.aiResult?.tags && (
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {entry.aiResult.tags.map((tag, index) => (
+                              <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <div className="text-xs text-gray-500">
+                          {formatTimestamp(entry.timestamp)}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => deleteEntry(entry.id)}
+                        className="p-1 text-gray-400 hover:text-red-600 rounded"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Reflections */}
+          {processedResults.reflections.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
+                <Heart className="h-5 w-5 text-purple-600" />
+                <span>Reflections ({processedResults.reflections.length})</span>
+              </h4>
+              <div className="space-y-3">
+                {processedResults.reflections.map((entry) => (
+                  <div key={entry.id} className={`p-4 rounded-lg border ${getCategoryColor('reflection')}`}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-grow">
+                        <h5 className="font-medium text-gray-900 mb-1">
+                          {entry.aiResult?.title}
+                        </h5>
+                        <p className="text-gray-700 text-sm mb-2">
+                          {entry.aiResult?.summary}
+                        </p>
+                        <div className="text-xs text-gray-500">
+                          {formatTimestamp(entry.timestamp)}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => deleteEntry(entry.id)}
+                        className="p-1 text-gray-400 hover:text-red-600 rounded"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Recent Raw Entries */}
+      {entries.length > 0 && (
+        <div className="space-y-3">
+          <h4 className="text-lg font-semibold text-gray-900">
+            Recent Entries ({entries.length})
+          </h4>
           <div className="space-y-2 max-h-96 overflow-y-auto">
             {entries.slice(0, 10).map((entry) => (
               <div key={entry.id} className="bg-white p-3 rounded-lg border border-gray-200">
@@ -206,6 +486,21 @@ export const BrainDump: React.FC = () => {
                       <span className="text-xs text-gray-500">
                         {formatTimestamp(entry.timestamp)}
                       </span>
+                      {entry.processed ? (
+                        <div className="flex items-center space-x-1">
+                          <CheckCircle className="h-3 w-3 text-green-600" />
+                          {entry.aiResult && getCategoryIcon(entry.aiResult.category)}
+                        </div>
+                      ) : (
+                        <div className="flex items-center space-x-1">
+                          {processing ? (
+                            <RefreshCw className="h-3 w-3 text-indigo-600 animate-spin" />
+                          ) : (
+                            <Clock className="h-3 w-3 text-orange-600" />
+                          )}
+                          <span className="text-xs text-orange-600">Pending</span>
+                        </div>
+                      )}
                     </div>
                     <p className="text-gray-700 text-sm">
                       {entry.content.length > 100 
@@ -233,7 +528,7 @@ export const BrainDump: React.FC = () => {
           <Brain className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h4 className="text-lg font-medium text-gray-900 mb-2">No brain dumps yet</h4>
           <p className="text-gray-600 max-w-md mx-auto">
-            Start capturing your thoughts! Use text or voice input to quickly save ideas and notes.
+            Start capturing your thoughts! Whether you're online or offline, your ideas will be saved and organized by AI when you're connected.
           </p>
         </div>
       )}
