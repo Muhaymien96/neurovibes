@@ -5,6 +5,8 @@ import { BrainDump } from '../BrainDump';
 import { TaskManager } from '../TaskManager';
 import { MoodTracker } from '../MoodTracker';
 import { ProfileSettings } from '../ProfileSettings';
+import { HomeHeader } from '../sections/HomeHeader';
+import { useMoodStore, useProfileStore } from '../../store';
 
 type ActiveTab = 'focus' | 'tasks' | 'mood' | 'braindump' | 'profile';
 
@@ -14,15 +16,21 @@ interface MainContentProps {
 }
 
 export const MainContent: React.FC<MainContentProps> = ({ activeTab, user }) => {
+  const { entries: moodEntries } = useMoodStore();
+  const { profile } = useProfileStore();
+
   return (
     <main className="flex-grow">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {activeTab === 'focus' && <FocusMode user={user} />}
-        {activeTab === 'braindump' && <BrainDump />}
-        {activeTab === 'tasks' && <TaskManager />}
-        {activeTab === 'mood' && <MoodTracker />}
-        {activeTab === 'profile' && <ProfileSettings />}
-      </div>
+      {/* Show HomeHeader for focus tab */}
+      {activeTab === 'focus' && (
+        <HomeHeader moodEntries={moodEntries} profile={profile} />
+      )}
+      
+      {activeTab === 'focus' && <FocusMode user={user} />}
+      {activeTab === 'braindump' && <BrainDump />}
+      {activeTab === 'tasks' && <TaskManager />}
+      {activeTab === 'mood' && <MoodTracker />}
+      {activeTab === 'profile' && <ProfileSettings />}
     </main>
   );
 };

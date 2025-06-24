@@ -6,7 +6,7 @@ import { MainContent } from './MainContent';
 import { CalmingTools } from '../CalmingTools';
 import { AuthModal } from '../AuthModal';
 import { NotificationCenter } from '../NotificationCenter';
-import { useSettingsStore, useMoodStore } from '../../store';
+import { useSettingsStore, useMoodStore, useProfileStore } from '../../store';
 
 type ActiveTab = 'focus' | 'tasks' | 'mood' | 'braindump' | 'profile' | 'calming';
 
@@ -22,8 +22,9 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ user }) => {
   
   const { appearance } = useSettingsStore();
   const { entries: moodEntries } = useMoodStore();
+  const { profile } = useProfileStore();
 
-  // Apply global styles based on settings and mood
+  // Apply global styles based on settings, mood, and neurodivergent type
   useEffect(() => {
     const root = document.documentElement;
     
@@ -50,49 +51,57 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ user }) => {
       root.style.fontFamily = 'Inter, system-ui, sans-serif';
     }
     
+    // Clear all existing classes
+    root.classList.remove(
+      'high-contrast', 'reduce-motion', 'minimalist', 'colorblind-friendly',
+      'animation-slow', 'animation-fast', 'dark-palette', 'low-sensory-palette',
+      'nd-adhd', 'nd-autism', 'nd-anxiety', 'nd-multiple',
+      'mood-theme-energetic', 'mood-theme-calm', 'mood-theme-focused', 
+      'mood-theme-low-energy', 'mood-theme-stressed'
+    );
+    
+    // Apply neurodivergent-specific styling
+    if (profile?.neurodivergent_type && profile.neurodivergent_type !== 'none') {
+      root.classList.add(`nd-${profile.neurodivergent_type}`);
+    }
+    
     // High contrast mode
     if (appearance.high_contrast_mode) {
       root.classList.add('high-contrast');
-    } else {
-      root.classList.remove('high-contrast');
     }
     
     // Reduced motion
     if (appearance.reduced_motion) {
       root.classList.add('reduce-motion');
-    } else {
-      root.classList.remove('reduce-motion');
     }
     
     // Minimalist mode
     if (appearance.minimalist_mode) {
       root.classList.add('minimalist');
-    } else {
-      root.classList.remove('minimalist');
     }
     
     // Colorblind mode
     if (appearance.colorblind_mode) {
       root.classList.add('colorblind-friendly');
-    } else {
-      root.classList.remove('colorblind-friendly');
     }
 
     // Animation speed
-    root.classList.remove('animation-slow', 'animation-fast');
     if (appearance.animation_speed === 'slow') {
       root.classList.add('animation-slow');
     } else if (appearance.animation_speed === 'fast') {
       root.classList.add('animation-fast');
     }
 
+    // Check for dark mode preference or low sensory mode
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (prefersDark || appearance.minimalist_mode) {
+      root.classList.add('low-sensory-palette');
+    }
+
     // Mood-responsive colors
     if (appearance.mood_responsive_colors && moodEntries.length > 0) {
       const latestMood = moodEntries[0];
       const avgMood = (latestMood.mood_score + latestMood.energy_level + latestMood.focus_level) / 3;
-      
-      // Remove existing mood theme classes
-      root.classList.remove('mood-theme-energetic', 'mood-theme-calm', 'mood-theme-focused', 'mood-theme-low-energy', 'mood-theme-stressed');
       
       // Apply mood-based theme
       if (latestMood.energy_level >= 8 && latestMood.mood_score >= 7) {
@@ -107,7 +116,7 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ user }) => {
         root.classList.add('mood-theme-stressed');
       }
     }
-  }, [appearance, moodEntries]);
+  }, [appearance, moodEntries, profile]);
 
   const renderMainContent = () => {
     if (activeTab === 'calming') {

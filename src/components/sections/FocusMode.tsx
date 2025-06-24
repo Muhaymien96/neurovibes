@@ -22,7 +22,7 @@ import {
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 import { useElevenLabsTTS } from '../../hooks/useElevenLabsTTS';
 import { useAICoach } from '../../hooks/useAICoach';
-import { useAuthStore, useMoodStore, useSettingsStore } from '../../store';
+import { useAuthStore, useMoodStore, useSettingsStore, useProfileStore } from '../../store';
 import { createFocusSession, updateFocusSession, supabase } from '../../lib/supabase';
 import { AICoachResponse } from '../AICoachResponse';
 import { VoiceControls } from '../ui/VoiceControls';
@@ -36,6 +36,7 @@ export const FocusMode: React.FC<FocusModeProps> = ({ user }) => {
   const { user: authUser } = useAuthStore();
   const { entries: moodEntries } = useMoodStore();
   const { notifications } = useSettingsStore();
+  const { profile } = useProfileStore();
   
   const [aiResponse, setAiResponse] = useState<any>(null);
   const [userTranscript, setUserTranscript] = useState('');
@@ -164,6 +165,7 @@ export const FocusMode: React.FC<FocusModeProps> = ({ user }) => {
         energy_level: energyLevel,
         focus_mode_active: focusModeActive,
         is_stuck_request: isStuckRequest,
+        neurodivergent_type: profile?.neurodivergent_type || 'none',
       }
     });
 
@@ -213,6 +215,7 @@ export const FocusMode: React.FC<FocusModeProps> = ({ user }) => {
       context: {
         user_id: authUser?.id,
         include_historical_data: true,
+        neurodivergent_type: profile?.neurodivergent_type || 'none',
       }
     });
 
@@ -444,42 +447,40 @@ export const FocusMode: React.FC<FocusModeProps> = ({ user }) => {
           </h3>
           
           {/* Timer Display */}
-          <div className="relative">
-            <div className={`text-6xl font-mono font-bold ${
+          <div className="relative w-48 h-48 mx-auto flex items-center justify-center">
+            <div className={`text-4xl font-mono font-bold ${
               currentPhase === 'work' ? 'text-blue-600' : 'text-green-600'
-            }`}>
+            } z-10`}>
               {formatTime(timeLeft)}
             </div>
-            <div className="text-lg text-gray-600 mt-2">
+            <div className="text-lg text-gray-600 mt-12 absolute">
               {currentPhase === 'work' ? 'Focus Time' : 'Break Time'}
             </div>
             
             {/* Progress Ring */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <svg className="w-48 h-48 transform -rotate-90" viewBox="0 0 100 100">
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="45"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  fill="none"
-                  className="text-gray-200"
-                />
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="45"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  fill="none"
-                  strokeDasharray={`${2 * Math.PI * 45}`}
-                  strokeDashoffset={`${2 * Math.PI * 45 * (1 - (timeLeft / ((currentPhase === 'work' ? timerDuration : breakDuration) * 60)))}`}
-                  className={currentPhase === 'work' ? 'text-blue-500' : 'text-green-500'}
-                  strokeLinecap="round"
-                />
-              </svg>
-            </div>
+            <svg className="absolute inset-0 w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+              <circle
+                cx="50"
+                cy="50"
+                r="45"
+                stroke="currentColor"
+                strokeWidth="2"
+                fill="none"
+                className="text-gray-200"
+              />
+              <circle
+                cx="50"
+                cy="50"
+                r="45"
+                stroke="currentColor"
+                strokeWidth="2"
+                fill="none"
+                strokeDasharray={`${2 * Math.PI * 45}`}
+                strokeDashoffset={`${2 * Math.PI * 45 * (1 - (timeLeft / ((currentPhase === 'work' ? timerDuration : breakDuration) * 60)))}`}
+                className={currentPhase === 'work' ? 'text-blue-500' : 'text-green-500'}
+                strokeLinecap="round"
+              />
+            </svg>
           </div>
 
           {/* Timer Controls */}
