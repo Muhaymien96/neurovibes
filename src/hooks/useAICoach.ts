@@ -11,6 +11,7 @@ interface AICoachRequest {
     include_historical_data?: boolean;
     focus_mode_active?: boolean;
     is_stuck_request?: boolean;
+    neurodivergent_type?: 'none' | 'adhd' | 'autism' | 'anxiety' | 'multiple';
   };
 }
 

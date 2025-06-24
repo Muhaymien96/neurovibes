@@ -14,7 +14,10 @@ import {
   Gauge,
   Type,
   Contrast,
-  Accessibility
+  Accessibility,
+  Brain,
+  Heart,
+  Lightbulb
 } from 'lucide-react';
 import { useAuthStore, useProfileStore, useSettingsStore } from '../store';
 
@@ -36,6 +39,7 @@ export const ProfileSettings: React.FC = () => {
   const [profileData, setProfileData] = useState({
     full_name: '',
     email: '',
+    neurodivergent_type: 'none' as 'none' | 'adhd' | 'autism' | 'anxiety' | 'multiple',
   });
 
   useEffect(() => {
@@ -47,6 +51,7 @@ export const ProfileSettings: React.FC = () => {
       setProfileData({
         full_name: profile.full_name || '',
         email: profile.email || '',
+        neurodivergent_type: profile.neurodivergent_type || 'none',
       });
     }
   }, [profile]);
@@ -61,6 +66,44 @@ export const ProfileSettings: React.FC = () => {
       setSaving(false);
     }
   };
+
+  const neurodivergentOptions = [
+    { 
+      value: 'none', 
+      label: 'Not specified', 
+      description: 'Standard experience',
+      icon: User,
+      color: 'gray'
+    },
+    { 
+      value: 'adhd', 
+      label: 'ADHD', 
+      description: 'Attention-focused features, energy-aware scheduling',
+      icon: Zap,
+      color: 'yellow'
+    },
+    { 
+      value: 'autism', 
+      label: 'Autism', 
+      description: 'Sensory-friendly design, routine support',
+      icon: Brain,
+      color: 'blue'
+    },
+    { 
+      value: 'anxiety', 
+      label: 'Anxiety', 
+      description: 'Calming interface, gentle reminders',
+      icon: Heart,
+      color: 'green'
+    },
+    { 
+      value: 'multiple', 
+      label: 'Multiple conditions', 
+      description: 'Adaptive features for multiple neurodivergent traits',
+      icon: Lightbulb,
+      color: 'purple'
+    },
+  ];
 
   if (loading) {
     return (
@@ -113,34 +156,115 @@ export const ProfileSettings: React.FC = () => {
       {/* Tab Content */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         {activeTab === 'profile' && (
-          <div className="space-y-6">
-            <h4 className="text-lg font-semibold text-gray-900">Profile Information</h4>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  value={profileData.full_name}
-                  onChange={(e) => setProfileData({ ...profileData, full_name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  placeholder="Enter your full name"
-                />
-              </div>
+          <div className="space-y-8">
+            <div>
+              <h4 className="text-lg font-semibold text-gray-900 mb-4">Profile Information</h4>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    value={profileData.full_name}
+                    onChange={(e) => setProfileData({ ...profileData, full_name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="Enter your full name"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  value={profileData.email}
-                  onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  placeholder="Enter your email"
-                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={profileData.email}
+                    onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="Enter your email"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Neurodivergent Profile Section */}
+            <div>
+              <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
+                <Brain className="h-5 w-5 text-indigo-600" />
+                <span>Neurodivergent Profile</span>
+              </h4>
+              <p className="text-gray-600 mb-6">
+                Help us personalize your experience by sharing your neurodivergent profile. This enables 
+                tailored AI coaching, interface adaptations, and features designed for your specific needs.
+              </p>
+              
+              <div className="grid gap-4">
+                {neurodivergentOptions.map((option) => {
+                  const IconComponent = option.icon;
+                  return (
+                    <label
+                      key={option.value}
+                      className={`relative flex items-start p-4 border-2 rounded-xl cursor-pointer transition-all hover:shadow-md ${
+                        profileData.neurodivergent_type === option.value
+                          ? `border-${option.color}-500 bg-${option.color}-50`
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="neurodivergent_type"
+                        value={option.value}
+                        checked={profileData.neurodivergent_type === option.value}
+                        onChange={(e) => setProfileData({ 
+                          ...profileData, 
+                          neurodivergent_type: e.target.value as any 
+                        })}
+                        className="sr-only"
+                      />
+                      <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center mr-4 ${
+                        profileData.neurodivergent_type === option.value
+                          ? `bg-${option.color}-100`
+                          : 'bg-gray-100'
+                      }`}>
+                        <IconComponent className={`h-5 w-5 ${
+                          profileData.neurodivergent_type === option.value
+                            ? `text-${option.color}-600`
+                            : 'text-gray-600'
+                        }`} />
+                      </div>
+                      <div className="flex-grow">
+                        <h5 className={`font-medium ${
+                          profileData.neurodivergent_type === option.value
+                            ? `text-${option.color}-900`
+                            : 'text-gray-900'
+                        }`}>
+                          {option.label}
+                        </h5>
+                        <p className={`text-sm ${
+                          profileData.neurodivergent_type === option.value
+                            ? `text-${option.color}-700`
+                            : 'text-gray-600'
+                        }`}>
+                          {option.description}
+                        </p>
+                      </div>
+                      {profileData.neurodivergent_type === option.value && (
+                        <div className={`absolute top-2 right-2 w-4 h-4 bg-${option.color}-500 rounded-full flex items-center justify-center`}>
+                          <div className="w-2 h-2 bg-white rounded-full"></div>
+                        </div>
+                      )}
+                    </label>
+                  );
+                })}
+              </div>
+              
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-blue-800 text-sm">
+                  <strong>Privacy Note:</strong> This information is used solely to personalize your MindMesh experience. 
+                  It's stored securely and never shared with third parties.
+                </p>
               </div>
             </div>
 

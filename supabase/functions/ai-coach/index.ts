@@ -18,6 +18,7 @@ interface TaskBreakdownRequest {
     workload_breakdown?: boolean;
     focus_mode_active?: boolean;
     is_stuck_request?: boolean;
+    neurodivergent_type?: 'none' | 'adhd' | 'autism' | 'anxiety' | 'multiple';
   };
 }
 
@@ -183,6 +184,69 @@ async function getUserHistoricalData(userId: string): Promise<UserHistoricalData
   };
 }
 
+function getNeurodivergentPersonalization(neurodivergentType: string): string {
+  switch (neurodivergentType) {
+    case 'adhd':
+      return `
+ADHD-SPECIFIC PERSONALIZATION:
+- Use shorter, more focused responses (2-3 sentences max for main points)
+- Break tasks into very small, specific steps (5-15 minute chunks)
+- Emphasize dopamine-friendly language ("You'll feel great when...", "Quick win!")
+- Suggest body doubling, timers, and movement breaks
+- Acknowledge executive function challenges without judgment
+- Use energetic, encouraging tone that matches ADHD energy patterns
+- Suggest working with natural energy cycles and hyperfocus periods
+- Recommend external accountability and visual reminders`;
+
+    case 'autism':
+      return `
+AUTISM-SPECIFIC PERSONALIZATION:
+- Provide clear, structured, and predictable guidance
+- Use concrete, specific language rather than abstract concepts
+- Respect sensory sensitivities (suggest quiet spaces, comfortable lighting)
+- Honor routine preferences and need for predictability
+- Acknowledge that social/communication tasks may need extra support
+- Use calm, steady tone without overwhelming enthusiasm
+- Provide detailed step-by-step instructions
+- Respect special interests and use them as motivation when possible
+- Suggest breaking down social or communication tasks into scripts`;
+
+    case 'anxiety':
+      return `
+ANXIETY-SPECIFIC PERSONALIZATION:
+- Use gentle, reassuring language that validates their concerns
+- Emphasize safety and control ("You can stop anytime", "This is just a suggestion")
+- Break overwhelming tasks into tiny, non-threatening steps
+- Acknowledge catastrophic thinking patterns with compassion
+- Suggest grounding techniques and breathing exercises
+- Use calm, soothing tone that reduces rather than increases activation
+- Provide multiple options so they feel in control
+- Emphasize progress over perfection
+- Validate that anxiety is trying to protect them`;
+
+    case 'multiple':
+      return `
+MULTIPLE CONDITIONS PERSONALIZATION:
+- Combine strategies from multiple neurodivergent approaches
+- Be extra flexible and adaptive in suggestions
+- Acknowledge the complexity of managing multiple conditions
+- Provide options for different energy levels and states
+- Use validating language that honors their unique experience
+- Suggest experimenting with different strategies to find what works
+- Emphasize self-compassion and patience with the process
+- Recognize that needs may change day to day`;
+
+    default:
+      return `
+GENERAL NEURODIVERGENT-FRIENDLY APPROACH:
+- Use clear, supportive language that validates their experience
+- Break tasks into manageable steps
+- Provide options and flexibility
+- Emphasize progress over perfection
+- Use encouraging, non-judgmental tone`;
+  }
+}
+
 function createReframingAdvicePrompt(request: TaskBreakdownRequest, historicalData?: UserHistoricalData): string {
   const { input, context } = request;
   
@@ -194,7 +258,13 @@ USER'S STUCK REQUEST:
 CURRENT CONTEXT:
 - Focus mode active: ${context?.focus_mode_active ? 'Yes' : 'No'}
 - Current energy level: ${context?.energy_level || 'Unknown'}/10
-- Current mood: ${context?.mood_score || 'Unknown'}/10`;
+- Current mood: ${context?.mood_score || 'Unknown'}/10
+- Neurodivergent type: ${context?.neurodivergent_type || 'not specified'}`;
+
+  // Add neurodivergent-specific personalization
+  if (context?.neurodivergent_type && context.neurodivergent_type !== 'none') {
+    prompt += `\n\n${getNeurodivergentPersonalization(context.neurodivergent_type)}`;
+  }
 
   if (historicalData) {
     prompt += `\n\nHISTORICAL PATTERNS:`;
@@ -228,7 +298,7 @@ GUIDELINES FOR REFRAMING ADVICE:
 - Offer perspective ("Remember, being stuck is temporary...")
 - Provide specific, small next steps
 - Reference their past successes when possible
-- Use neurodivergent-friendly language
+- Use neurodivergent-friendly language based on their type
 - Focus on progress, not perfection
 - Suggest breaking things down into smaller pieces
 - Remind them of their strengths
@@ -255,7 +325,14 @@ EXISTING TASKS CONTEXT:
 ${context?.existing_tasks?.length ? 
   context.existing_tasks.map(task => `- ${task}`).join('\n') :
   'No existing tasks'
-}`;
+}
+
+NEURODIVERGENT TYPE: ${context?.neurodivergent_type || 'not specified'}`;
+
+  // Add neurodivergent-specific personalization
+  if (context?.neurodivergent_type && context.neurodivergent_type !== 'none') {
+    prompt += `\n\n${getNeurodivergentPersonalization(context.neurodivergent_type)}`;
+  }
 
   if (context?.mood_score) {
     prompt += `\nCurrent Mood Score: ${context.mood_score}/10`;
@@ -315,11 +392,11 @@ Respond with a JSON object containing:
   "time_estimate": "Total estimated time for the entire workload",
   "encouragement": "Supportive, neurodivergent-friendly encouragement that validates the complexity while building confidence",
   "personalized_insights": ["Array of insights based on historical patterns if available"],
-  "recommended_strategies": ["Array of specific strategies based on user patterns"]
+  "recommended_strategies": ["Array of specific strategies based on user patterns and neurodivergent type"]
 }
 
 GUIDELINES:
-- Break large tasks into smaller, focused chunks (ideal: 1-3 hours per task)
+- Break large tasks into smaller, focused chunks (ideal: 1-3 hours per task for ADHD, longer for autism if preferred)
 - Prioritize based on dependencies and deadlines
 - Include specific, actionable descriptions
 - Consider energy management (mix high and low energy tasks)
@@ -347,7 +424,13 @@ function createEnhancedCoachingPrompt(request: TaskBreakdownRequest, historicalD
   let basePrompt = `You are a gentle, encouraging AI coach specifically designed for neurodivergent minds (ADHD, autism, anxiety). Your role is to help break down tasks and provide supportive guidance using deep contextual understanding.
 
 User Input Type: ${type}
-User Input: "${input}"`;
+User Input: "${input}"
+Neurodivergent Type: ${context?.neurodivergent_type || 'not specified'}`;
+
+  // Add neurodivergent-specific personalization
+  if (context?.neurodivergent_type && context.neurodivergent_type !== 'none') {
+    basePrompt += `\n\n${getNeurodivergentPersonalization(context.neurodivergent_type)}`;
+  }
 
   if (context?.mood_score) {
     basePrompt += `\nCurrent Mood Score: ${context.mood_score}/10`;
@@ -420,6 +503,7 @@ Guidelines:
 - Reference their productive hours and past successes when relevant
 - Address their common challenges with specific strategies
 - If in focus mode, provide focused, concise guidance
+- Adapt language and suggestions based on their neurodivergent type
 
 Examples of enhanced coaching language:
 - "Based on your patterns, you tend to be most productive around [time], so this might be a good time to tackle this"
