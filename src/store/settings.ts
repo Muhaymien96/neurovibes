@@ -28,21 +28,15 @@ interface AppearanceSettings {
   background_color_for_reading: string;
 }
 
-interface DeveloperSettings {
-  dev_mode_subscriptions: boolean;
-}
-
 interface SettingsState {
   notifications: NotificationSettings;
   privacy: PrivacySettings;
   appearance: AppearanceSettings;
-  developer: DeveloperSettings;
   
   // Actions
   updateNotifications: (settings: Partial<NotificationSettings>) => void;
   updatePrivacy: (settings: Partial<PrivacySettings>) => void;
   updateAppearance: (settings: Partial<AppearanceSettings>) => void;
-  updateDeveloper: (settings: Partial<DeveloperSettings>) => void;
   resetToDefaults: () => void;
 }
 
@@ -71,9 +65,6 @@ const defaultSettings = {
     animation_speed: 'normal' as const,
     background_color_for_reading: '#ffffff',
   },
-  developer: {
-    dev_mode_subscriptions: false,
-  },
 };
 
 export const useSettingsStore = create<SettingsState>()(
@@ -99,12 +90,6 @@ export const useSettingsStore = create<SettingsState>()(
         });
       },
 
-      updateDeveloper: (settings: Partial<DeveloperSettings>) => {
-        set({
-          developer: { ...get().developer, ...settings }
-        });
-      },
-
       resetToDefaults: () => {
         set(defaultSettings);
       },
@@ -115,7 +100,6 @@ export const useSettingsStore = create<SettingsState>()(
         notifications: state.notifications,
         privacy: state.privacy,
         appearance: state.appearance,
-        developer: state.developer,
       }),
     }
   )

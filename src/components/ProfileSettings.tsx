@@ -8,10 +8,9 @@ import {
   Brain,
   Heart,
   Lightbulb,
-  Code,
   Crown
 } from 'lucide-react';
-import { useAuthStore, useProfileStore, useSettingsStore, useSubscriptionStore } from '../store';
+import { useAuthStore, useProfileStore, useSettingsStore } from '../store';
 
 export const ProfileSettings: React.FC = () => {
   const { user } = useAuthStore();
@@ -20,17 +19,13 @@ export const ProfileSettings: React.FC = () => {
     notifications, 
     privacy, 
     appearance,
-    developer,
     updateNotifications, 
     updatePrivacy, 
-    updateAppearance,
-    updateDeveloper
+    updateAppearance
   } = useSettingsStore();
   
-  const { setDevMode, devModeEnabled } = useSubscriptionStore();
-  
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'privacy' | 'appearance' | 'developer'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'privacy' | 'appearance'>('profile');
   
   const [profileData, setProfileData] = useState({
     full_name: '',
@@ -52,13 +47,6 @@ export const ProfileSettings: React.FC = () => {
     }
   }, [profile]);
 
-  // Sync dev mode between stores
-  useEffect(() => {
-    if (developer.dev_mode_subscriptions !== devModeEnabled) {
-      setDevMode(developer.dev_mode_subscriptions);
-    }
-  }, [developer.dev_mode_subscriptions, devModeEnabled, setDevMode]);
-
   const handleSaveProfile = async () => {
     setSaving(true);
     try {
@@ -68,11 +56,6 @@ export const ProfileSettings: React.FC = () => {
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleDevModeToggle = (enabled: boolean) => {
-    updateDeveloper({ dev_mode_subscriptions: enabled });
-    setDevMode(enabled);
   };
 
   const neurodivergentOptions = [
@@ -144,7 +127,6 @@ export const ProfileSettings: React.FC = () => {
             { id: 'notifications', label: 'Notifications', icon: Bell },
             { id: 'privacy', label: 'Privacy', icon: Shield },
             { id: 'appearance', label: 'Appearance', icon: Palette },
-            { id: 'developer', label: 'Developer', icon: Code },
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -502,44 +484,6 @@ export const ProfileSettings: React.FC = () => {
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                 </label>
               </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'developer' && (
-          <div className="space-y-6">
-            <h4 className="text-lg font-semibold text-gray-900">Developer Settings</h4>
-            <p className="text-gray-600">
-              These settings are for development and testing purposes only.
-            </p>
-            
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-yellow-900">Dev Mode: Bypass Subscriptions</p>
-                  <p className="text-sm text-yellow-700">
-                    When enabled, all premium features will be accessible without a subscription. 
-                    This simulates a Pro subscription for development and testing.
-                  </p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={developer.dev_mode_subscriptions}
-                    onChange={(e) => handleDevModeToggle(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-600"></div>
-                </label>
-              </div>
-              
-              {developer.dev_mode_subscriptions && (
-                <div className="mt-3 p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
-                  <p className="text-yellow-800 text-sm font-medium">
-                    ⚠️ Dev Mode Active: All premium features are unlocked. Subscription checks are bypassed.
-                  </p>
-                </div>
-              )}
             </div>
           </div>
         )}
