@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, X, Clock, Snooze } from 'lucide-react';
+import { Bell, X, Clock, SunSnow as Snooze } from 'lucide-react';
 import { useRemindersStore, useSettingsStore } from '../store';
 
 export const NotificationCenter: React.FC = () => {
