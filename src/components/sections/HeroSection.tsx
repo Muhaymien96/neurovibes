@@ -28,15 +28,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onAuthModal }) => {
             for ADHD, autism, and anxiety.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="flex justify-center">
             <button
               onClick={() => onAuthModal('signup')}
               className="bg-indigo-600 text-white px-8 py-4 rounded-xl hover:bg-indigo-700 transition-all duration-200 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1"
             >
               Start Your Focus Journey
-            </button>
-            <button className="text-indigo-600 px-8 py-4 rounded-xl border-2 border-indigo-200 hover:border-indigo-300 transition-all duration-200 font-semibold text-lg hover:bg-indigo-50">
-              Watch Demo
             </button>
           </div>
         </div>

@@ -214,7 +214,7 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
               ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
               : 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200'
           }`}
-          title={isSpeaking ? 'Stop speaking' : 'Listen to response'}
+          aria-label={isSpeaking ? 'Stop speaking response' : 'Listen to AI response'}
         >
           {loading ? (
             <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
@@ -287,6 +287,7 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
                   onClick={handleAddAllTasks}
                   disabled={addingTasks}
                   className="flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Add all suggested tasks to your task list"
                 >
                   {addingTasks ? (
                     <>
@@ -305,6 +306,7 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
                 <button
                   onClick={onRejectSuggestions}
                   className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm"
+                  aria-label="Reject all task suggestions"
                 >
                   <X className="h-4 w-4" />
                   <span>Reject All</span>
@@ -373,7 +375,7 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
                           <button
                             onClick={() => handleEditTask(index)}
                             className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-                            title="Edit task"
+                            aria-label={`Edit task: ${task.title}`}
                           >
                             <Edit3 className="h-4 w-4" />
                           </button>
@@ -381,7 +383,7 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
                           <button
                             onClick={() => handleRemoveTask(index)}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Remove task"
+                            aria-label={`Remove task: ${task.title}`}
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -391,6 +393,7 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
                               onClick={() => handleAddSingleTask(task, index)}
                               disabled={addingTaskIndex === index}
                               className="px-3 py-1 bg-indigo-600 text-white text-xs rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              aria-label={`Add task: ${task.title}`}
                             >
                               {addingTaskIndex === index ? (
                                 <div className="flex items-center space-x-1">
@@ -441,6 +444,7 @@ export const AICoachResponse: React.FC<AICoachResponseProps> = ({
                   <button
                     onClick={() => onSubtaskAdd(subtask)}
                     className="ml-3 px-3 py-1 bg-indigo-600 text-white text-xs rounded-md hover:bg-indigo-700 transition-colors"
+                    aria-label={`Add subtask: ${subtask}`}
                   >
                     Add as Task
                   </button>

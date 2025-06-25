@@ -16,14 +16,51 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onM
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   const { signIn, signUp } = useAuthStore();
+
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) {
+      setEmailError('Email is required');
+      return false;
+    }
+    if (!emailRegex.test(email)) {
+      setEmailError('Please enter a valid email address');
+      return false;
+    }
+    setEmailError(null);
+    return true;
+  };
+
+  const validatePassword = (password: string) => {
+    if (!password) {
+      setPasswordError('Password is required');
+      return false;
+    }
+    if (mode === 'signup' && password.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
+      return false;
+    }
+    setPasswordError(null);
+    return true;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setSuccess(null);
+
+    const isEmailValid = validateEmail(email);
+    const isPasswordValid = validatePassword(password);
+
+    if (!isEmailValid || !isPasswordValid) {
+      setLoading(false);
+      return;
+    }
 
     try {
       if (mode === 'signup') {
@@ -48,6 +85,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onM
     setFullName('');
     setError(null);
     setSuccess(null);
+    setEmailError(null);
+    setPasswordError(null);
   };
 
   const handleModeChange = (newMode: 'signin' | 'signup') => {
@@ -68,6 +107,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onM
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            aria-label="Close authentication modal"
           >
             <X className="h-5 w-5 text-gray-500" />
           </button>
@@ -106,12 +146,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onM
                   type="email"
                   id="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (emailError) validateEmail(e.target.value);
+                  }}
+                  onBlur={() => validateEmail(email)}
                   required
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+                    emailError ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                  }`}
                   placeholder="Enter your email"
                 />
               </div>
+              {emailError && (
+                <p className="mt-1 text-sm text-red-600 flex items-center">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  {emailError}
+                </p>
+              )}
             </div>
 
             <div>
@@ -124,14 +176,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onM
                   type="password"
                   id="password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (passwordError) validatePassword(e.target.value);
+                  }}
+                  onBlur={() => validatePassword(password)}
                   required
                   minLength={6}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+                    passwordError ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                  }`}
                   placeholder="Enter your password"
                 />
               </div>
-              {mode === 'signup' && (
+              {passwordError && (
+                <p className="mt-1 text-sm text-red-600 flex items-center">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  {passwordError}
+                </p>
+              )}
+              {mode === 'signup' && !passwordError && (
                 <p className="text-xs text-gray-500 mt-1">Password must be at least 6 characters</p>
               )}
             </div>
@@ -152,7 +216,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onM
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !!emailError || !!passwordError}
               className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Please wait...' : mode === 'signin' ? 'Sign In' : 'Create Account'}

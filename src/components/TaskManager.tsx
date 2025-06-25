@@ -345,7 +345,7 @@ export const TaskManager: React.FC = () => {
           <button
             onClick={() => handleUpdateTaskStatus(task.id, 'pending')}
             className="p-1 text-green-600 hover:bg-green-50 rounded"
-            title="Mark as pending"
+            aria-label={`Mark task "${task.title}" as pending`}
           >
             <RotateCcw className="h-4 w-4" />
           </button>
@@ -355,7 +355,7 @@ export const TaskManager: React.FC = () => {
           <button
             onClick={() => handleUpdateTaskStatus(task.id, 'completed')}
             className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-            title="Mark as completed"
+            aria-label={`Mark task "${task.title}" as completed`}
           >
             <CheckCircle className="h-4 w-4" />
           </button>
@@ -365,7 +365,7 @@ export const TaskManager: React.FC = () => {
           <button
             onClick={() => handleUpdateTaskStatus(task.id, 'in_progress')}
             className="p-1 text-gray-600 hover:bg-gray-50 rounded"
-            title="Start working"
+            aria-label={`Start working on task "${task.title}"`}
           >
             <Play className="h-4 w-4" />
           </button>
@@ -532,6 +532,7 @@ export const TaskManager: React.FC = () => {
                     type="button"
                     onClick={() => removeEditTag(tag)}
                     className="text-indigo-600 hover:text-indigo-800"
+                    aria-label={`Remove tag: ${tag}`}
                   >
                     ×
                   </button>
@@ -619,6 +620,7 @@ export const TaskManager: React.FC = () => {
                   <button
                     onClick={() => toggleTaskExpansion(task.id)}
                     className="p-1 hover:bg-gray-100 rounded"
+                    aria-label={`${task.isExpanded ? 'Collapse' : 'Expand'} subtasks for ${task.title}`}
                   >
                     {task.isExpanded ? (
                       <ChevronDown className="h-4 w-4" />
@@ -694,7 +696,7 @@ export const TaskManager: React.FC = () => {
                 setShowTaskMenu(showTaskMenu === task.id ? null : task.id);
               }}
               className="p-1 text-gray-600 hover:bg-gray-50 rounded"
-              title="More options"
+              aria-label={`More options for task: ${task.title}`}
             >
               <MoreHorizontal className="h-4 w-4" />
             </button>
@@ -745,6 +747,7 @@ export const TaskManager: React.FC = () => {
             <button
               onClick={handleClearCompletedTasks}
               className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+              aria-label={`Clear ${completedTasksCount} completed tasks`}
             >
               <Trash2 className="h-4 w-4" />
               <span>Clear Completed ({completedTasksCount})</span>
@@ -987,6 +990,7 @@ export const TaskManager: React.FC = () => {
                         type="button"
                         onClick={() => removeTag(tag)}
                         className="text-indigo-600 hover:text-indigo-800"
+                        aria-label={`Remove tag: ${tag}`}
                       >
                         ×
                       </button>

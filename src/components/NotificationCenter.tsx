@@ -49,7 +49,7 @@ export const NotificationCenter: React.FC = () => {
       <button
         onClick={() => setShowNotifications(!showNotifications)}
         className="fixed top-4 right-4 bg-indigo-600 text-white p-3 rounded-full shadow-lg hover:bg-indigo-700 transition-colors z-50"
-        title={`${activeReminders.length} active reminder${activeReminders.length !== 1 ? 's' : ''}`}
+        aria-label={`${activeReminders.length} active reminder${activeReminders.length !== 1 ? 's' : ''} - click to view`}
       >
         <Bell className="h-5 w-5" />
         {activeReminders.length > 0 && (
@@ -68,6 +68,7 @@ export const NotificationCenter: React.FC = () => {
               <button
                 onClick={() => setShowNotifications(false)}
                 className="p-1 hover:bg-gray-100 rounded"
+                aria-label="Close notifications panel"
               >
                 <X className="h-4 w-4 text-gray-500" />
               </button>
@@ -99,6 +100,7 @@ export const NotificationCenter: React.FC = () => {
                   <button
                     onClick={() => handleDismiss(reminder.id)}
                     className="flex-1 bg-gray-200 text-gray-800 px-3 py-1 rounded text-sm hover:bg-gray-300 transition-colors"
+                    aria-label={`Dismiss reminder: ${reminder.title}`}
                   >
                     Dismiss
                   </button>
@@ -109,7 +111,7 @@ export const NotificationCenter: React.FC = () => {
                         key={minutes}
                         onClick={() => handleSnooze(reminder.id, minutes)}
                         className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded text-xs hover:bg-indigo-200 transition-colors"
-                        title={`Snooze for ${minutes} minutes`}
+                        aria-label={`Snooze reminder for ${minutes} minutes`}
                       >
                         {minutes}m
                       </button>

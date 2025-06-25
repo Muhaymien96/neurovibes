@@ -159,6 +159,7 @@ export const BrainDump: React.FC = () => {
                   : 'bg-green-100 text-green-800'
               }`}
               title={`${stats.unsynced} unsynced entries`}
+              aria-label={`Sync ${stats.unsynced} unsynced entries to cloud`}
             >
               {syncing ? (
                 <RefreshCw className="h-3 w-3 animate-spin" />
@@ -227,6 +228,7 @@ export const BrainDump: React.FC = () => {
               onClick={processUnprocessedEntries}
               disabled={processing}
               className="flex items-center space-x-2 text-sm text-indigo-600 hover:text-indigo-700"
+              aria-label={`Process ${stats.unprocessed} pending entries`}
             >
               <RefreshCw className={`h-4 w-4 ${processing ? 'animate-spin' : ''}`} />
               <span>Process {stats.unprocessed} pending</span>
@@ -270,6 +272,7 @@ export const BrainDump: React.FC = () => {
                   ? 'bg-red-500 hover:bg-red-600 animate-pulse' 
                   : 'bg-indigo-600 hover:bg-indigo-700'
               } text-white`}
+              aria-label={isListening ? 'Stop voice recording' : 'Start voice recording'}
             >
               <Mic className="h-8 w-8" />
             </button>
@@ -309,6 +312,7 @@ export const BrainDump: React.FC = () => {
           <button
             onClick={() => setShowResults(!showResults)}
             className="flex items-center space-x-2 text-indigo-600 hover:text-indigo-700"
+            aria-label={`${showResults ? 'Hide' : 'Show'} processed results (${stats.processed} entries)`}
           >
             <span className="font-medium">
               {showResults ? 'Hide' : 'Show'} Processed Results ({stats.processed})
@@ -320,6 +324,7 @@ export const BrainDump: React.FC = () => {
             <button
               onClick={clearAllEntries}
               className="flex items-center space-x-2 text-red-600 hover:text-red-700 text-sm"
+              aria-label="Clear all brain dump entries"
             >
               <Trash2 className="h-4 w-4" />
               <span>Clear All</span>
@@ -375,6 +380,7 @@ export const BrainDump: React.FC = () => {
                       <button
                         onClick={() => deleteEntry(entry.id)}
                         className="p-1 text-gray-400 hover:text-red-600 rounded"
+                        aria-label={`Delete entry: ${entry.aiResult?.title}`}
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -419,6 +425,7 @@ export const BrainDump: React.FC = () => {
                       <button
                         onClick={() => deleteEntry(entry.id)}
                         className="p-1 text-gray-400 hover:text-red-600 rounded"
+                        aria-label={`Delete entry: ${entry.aiResult?.title}`}
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -454,6 +461,7 @@ export const BrainDump: React.FC = () => {
                       <button
                         onClick={() => deleteEntry(entry.id)}
                         className="p-1 text-gray-400 hover:text-red-600 rounded"
+                        aria-label={`Delete entry: ${entry.aiResult?.title}`}
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -512,6 +520,7 @@ export const BrainDump: React.FC = () => {
                   <button
                     onClick={() => deleteEntry(entry.id)}
                     className="p-1 text-gray-400 hover:text-red-600 rounded"
+                    aria-label={`Delete entry: ${entry.content.substring(0, 50)}...`}
                   >
                     <X className="h-4 w-4" />
                   </button>

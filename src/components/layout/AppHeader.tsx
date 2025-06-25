@@ -45,6 +45,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           <button
             onClick={onBackToApp}
             className="flex items-center space-x-3"
+            aria-label="Go to MindMesh home"
           >
             <div className="relative">
               <Brain className="h-8 w-8 text-indigo-600" />
@@ -100,14 +101,14 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                     className={`flex items-center space-x-1 transition-colors ${
                       activeTab === 'profile' ? 'text-indigo-600' : 'text-gray-600 hover:text-indigo-600'
                     }`}
-                    title="Profile & Settings"
+                    aria-label="Profile and settings"
                   >
                     <UserIcon className="h-4 w-4" />
                   </button>
                   <button
                     onClick={handleSignOut}
                     className="flex items-center space-x-1 text-gray-600 hover:text-red-600 transition-colors"
-                    title="Sign out"
+                    aria-label="Sign out of MindMesh"
                   >
                     <LogOut className="h-4 w-4" />
                   </button>
@@ -158,7 +159,10 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           </nav>
 
           {/* Mobile menu button */}
-          <button className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
+          <button 
+            className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            aria-label="Open mobile menu"
+          >
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
